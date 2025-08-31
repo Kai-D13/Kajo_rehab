@@ -58,6 +58,8 @@ export interface Booking {
   schedule: TimeSlot;
   doctor: Doctor;
   department: Department;
+  symptoms?: string[];
+  description?: string;
 }
 
 export interface Invoice {

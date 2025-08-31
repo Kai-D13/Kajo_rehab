@@ -2,6 +2,7 @@ import Section from "@/components/section";
 import TransitionLink from "@/components/transition-link";
 import book from "@/static/book.svg";
 import history from "@/static/history.svg";
+import medicalRecord from "@/static/medical-record.svg";
 import { To } from "react-router-dom";
 
 interface QuickActionProps {
@@ -28,16 +29,28 @@ const QuickActions = () => {
   return (
     <Section className="pt-4 pb-5 grid grid-cols-2 gap-3">
       <QuickAction
-        to="/booking"
+        to="/booking/new"
         icon={book}
-        title="Đặt lịch"
-        subtitle="Khám bệnh"
+        title="Đặt lịch khám"
+        subtitle="Đặt hẹn điều trị"
       />
       <QuickAction
         to="/schedule"
         icon={history}
-        title="Lịch sử"
-        subtitle="Hồ sơ"
+        title="Lịch hẹn"
+        subtitle="Quản lý lịch đã đặt"
+      />
+      <QuickAction
+        to="/medical-records"
+        icon={medicalRecord}
+        title="Hồ sơ bệnh án"
+        subtitle="Theo dõi điều trị"
+      />
+      <QuickAction
+        to="/profile"
+        icon={history} // Using history icon temporarily
+        title="Hồ sơ cá nhân"
+        subtitle="Thông tin tài khoản"
       />
     </Section>
   );

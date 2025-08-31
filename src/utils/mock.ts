@@ -45,17 +45,17 @@ export async function mock7DaysTimeSlots() {
       : START_HOUR; // Start from 8 AM if not today
 
     for (let hour = startHour; hour < END_HOUR; hour++) {
-      // Full hour slot
+      // Full hour slot - Always available in development
       slots.push({
         hour,
-        isAvailable: Math.random() > 0.3,
+        isAvailable: true, // ✅ Show all slots for development testing
       });
 
-      // Half hour slot
+      // Half hour slot - Always available in development  
       slots.push({
         hour,
         half: true,
-        isAvailable: Math.random() > 0.3,
+        isAvailable: true, // ✅ Show all slots for development testing
       });
     }
 
@@ -84,7 +84,7 @@ export async function mockDoctors() {
       languages: "Tiếng Việt, English",
       specialties: "Thần Kinh Nội Khoa, Chóng Mặt, Đau Đầu Chuyên Khoa",
       image: ViDN,
-      isAvailable: Math.random() > 0.3,
+      isAvailable: true, // ✅ Always available for development
     },
     {
       id: 2,
@@ -93,7 +93,7 @@ export async function mockDoctors() {
       languages: "Tiếng Việt, English, 한국어",
       specialties: "Nội Khoa, Bệnh Gan",
       image: DinhLD,
-      isAvailable: Math.random() > 0.3,
+      isAvailable: true, // ✅ Always available for development
     },
     {
       id: 3,
@@ -102,7 +102,7 @@ export async function mockDoctors() {
       languages: "Tiếng Việt, English",
       specialties: "Nội Khoa, Bệnh Gan",
       image: XungTD,
-      isAvailable: Math.random() > 0.3,
+      isAvailable: true, // ✅ Always available for development
     },
     {
       id: 4,
@@ -111,7 +111,7 @@ export async function mockDoctors() {
       languages: "Tiếng Việt, English, 한국어",
       specialties: "Nội Khoa, Bệnh Gan",
       image: TranHT,
-      isAvailable: Math.random() > 0.3,
+      isAvailable: true, // ✅ Always available for development
     },
     {
       id: 5,
@@ -120,7 +120,7 @@ export async function mockDoctors() {
       languages: "Tiếng Việt, English",
       specialties: "Nội Khoa, Bệnh Gan",
       image: WilsonJ,
-      isAvailable: Math.random() > 0.3,
+      isAvailable: true, // ✅ Always available for development
     },
     {
       id: 6,
@@ -129,7 +129,7 @@ export async function mockDoctors() {
       languages: "Tiếng Việt, English, 한국어",
       specialties: "Nội Khoa, Bệnh Gan",
       image: HiddlestonT,
-      isAvailable: Math.random() > 0.3,
+      isAvailable: true, // ✅ Always available for development
     },
     {
       id: 7,
@@ -138,7 +138,7 @@ export async function mockDoctors() {
       languages: "Tiếng Việt, English, 한국어",
       specialties: "Nội Khoa, Bệnh Gan",
       image: TeddyNH,
-      isAvailable: Math.random() > 0.3,
+      isAvailable: true, // ✅ Always available for development
     },
   ];
 }

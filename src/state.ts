@@ -36,6 +36,32 @@ import {
 import { getUserInfo } from "zmp-sdk";
 import { toLowerCaseNonAccentVietnamese, wait } from "./utils/miscellaneous";
 import { NotifiableError } from "./utils/errors";
+import { AuthService } from "./services/auth.service";
+
+/**
+ * Authentication State
+ */
+export const authState = atom({
+  isAuthenticated: false,
+  user: null as any,
+  zaloUser: null as any,
+});
+
+export const currentUserState = atomWithRefresh(async () => {
+  try {
+    if (AuthService.isAuthenticated()) {
+      return {
+        user: AuthService.getCurrentUser(),
+        zaloUser: AuthService.getCurrentZaloUser()
+      };
+    }
+    
+    const { user, zaloUser } = await AuthService.authenticateUser();
+    return { user, zaloUser };
+  } catch (error) {
+    throw new NotifiableError("Vui lòng cho phép truy cập tên và ảnh đại diện!");
+  }
+});
 
 /**
  * Listings
@@ -85,6 +111,20 @@ export const scheduleByIdState = atomFamily((id: number) =>
   atom(async (get) => {
     const schedules = await get(schedulesState);
     return schedules.find((s) => s.id === id);
+  })
+);
+
+// New atom for appointments from MockDatabaseService  
+export const appointmentByIdState = atomFamily((id: string) =>
+  atom(async () => {
+    try {
+      const { MockDatabaseService } = await import('./services/mock-database.service');
+      const appointments = await MockDatabaseService.getUserAppointments('patient-dev-123');
+      return appointments.find((appointment) => appointment.id === id);
+    } catch (error) {
+      console.error('Error fetching appointment by ID:', error);
+      return null;
+    }
   })
 );
 
@@ -147,15 +187,16 @@ export const searchResultState = atomFamily((keyword: string) =>
   )
 );
 
-export const userState = atomWithRefresh(() => {
-  return getUserInfo({
-    avatarType: "normal",
-  }).catch(() => {
-    throw new NotifiableError(
-      "Vui lòng cho phép truy cập tên và ảnh đại diện!"
-    );
-  });
-});
+// Legacy userState - disabled to avoid conflicts with AuthService
+// export const userState = atomWithRefresh(() => {
+//   return getUserInfo({
+//     avatarType: "normal",
+//   }).catch(() => {
+//     throw new NotifiableError(
+//       "Vui lòng cho phép truy cập tên và ảnh đại diện!"
+//     );
+//   });
+// });
 
 /**
  * Forms

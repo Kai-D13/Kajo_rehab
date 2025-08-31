@@ -1,12 +1,21 @@
 import { Button } from "@/components/button";
 import { DashedDivider } from "@/components/dashed-divider";
 import PolarizedList from "@/components/polarized-list";
-import { invoicesState, userState } from "@/state";
+import { invoicesState } from "@/state";
+import { AuthService } from "@/services/auth.service";
 import { useAtomValue } from "jotai";
 
 function InvoicesPage() {
-  const { userInfo } = useAtomValue(userState);
+  const user = AuthService.getCurrentUser();
   const invoices = useAtomValue(invoicesState);
+
+  if (!user) {
+    return (
+      <div className="py-5 px-4">
+        <div className="text-center">Loading user data...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-5 px-4 space-y-4">
@@ -21,7 +30,7 @@ function InvoicesPage() {
           <DashedDivider />
           <PolarizedList
             items={[
-              ["Tên", userInfo.name],
+              ["Tên", user.name],
               ["Khu vực bệnh viện", "Bệnh viện Quốc tế Gia Hội Thượng Hải"],
               ["Khoa", "Nội khoa A"],
               ["Thời gian khám bệnh", "2022.02.16 Thứ Tư 09:00-09:30"],

@@ -2,20 +2,35 @@ import { useAtomValue } from "jotai";
 import { To, useLocation, useNavigate } from "react-router-dom";
 import { useRouteHandle } from "@/hooks";
 import { BackIcon } from "./icons/back";
-import { customTitleState, userState } from "@/state";
+import { customTitleState } from "@/state";
+import { AuthService } from "@/services/auth.service";
 import { getConfig } from "@/utils/miscellaneous";
 import HeaderShieldIcon from "./icons/header-shield";
 
 function ProfileHeader() {
-  const { userInfo } = useAtomValue(userState);
+  const user = AuthService.getCurrentUser();
+  const zaloUser = AuthService.getCurrentZaloUser();
+
+  if (!user || !zaloUser) {
+    return (
+      <div className="flex items-center justify-center space-x-3">
+        <div className="w-10 h-10 bg-gray-200 rounded-full" />
+        <div className="w-40 font-medium">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center space-x-3">
       <img
-        src={userInfo.avatar}
+        src={user.avatar || zaloUser.avatar}
+        alt={`${user.name || zaloUser.name} avatar`}
         className="rounded-full h-10 w-10 object-cover border border-white"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNkZGQiLz4KPHRleHQgeD0iNTAiIHk9IjU1IiBmb250LXNpemU9IjE2IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Vc2VyPC90ZXh0Pgo8L3N2Zz4K';
+        }}
       />
-      <div className="w-40 font-medium">{userInfo.name}</div>
+      <div className="w-40 font-medium">{user.name}</div>
     </div>
   );
 }
@@ -26,9 +41,27 @@ function CustomTitle() {
 }
 
 export default function Header() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [handle, match] = useRouteHandle();
+  // Add error boundary for router hooks
+  let navigate, location, handle, match;
+  
+  try {
+    navigate = useNavigate();
+    location = useLocation();
+    [handle, match] = useRouteHandle();
+  } catch (error) {
+    console.warn('Header: Router hooks not available, using fallback');
+    // Fallback when not in router context
+    return (
+      <header className="flex-none w-full min-h-12 pr-[90px] px-4 pt-st pb-2 space-x-2">
+        <div className="flex items-center min-h-12">
+          <div className="flex items-center justify-center space-x-3">
+            <HeaderShieldIcon />
+            <div className="text-lg font-medium">{getConfig((c) => c.app.title)}</div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   const showMainHeader = !handle?.back;
   const showBack = location.key !== "default" && handle?.back !== false;

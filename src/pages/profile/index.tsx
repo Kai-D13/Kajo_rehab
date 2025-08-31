@@ -6,6 +6,7 @@ import calendar from "@/static/services/calendar.svg";
 import clipboard from "@/static/services/clipboard.svg";
 import heart from "@/static/services/heart.svg";
 import Section from "@/components/section";
+import TransitionLink from "@/components/transition-link";
 import { Action } from "./action";
 import { VisitedDoctor } from "./visited-doctor";
 
@@ -32,15 +33,15 @@ function ProfilePage() {
         <Section title="Dịch vụ y tế" viewMore="/services">
           <div className="grid grid-cols-4 pt-6 gap-2 text-center text-xs">
             {[
-              { icon: prescription, label: "Toa thuốc" },
-              { icon: calendar, label: "Lịch hẹn" },
-              { icon: clipboard, label: "Lịch sử" },
-              { icon: heart, label: "Gia đình" },
-            ].map(({ icon, label }) => (
-              <div key={label} className="flex flex-col items-center gap-2">
-                <img src={icon} className="h-8 w-8" />
+              { icon: prescription, label: "Toa thuốc", to: "/prescriptions" },
+              { icon: calendar, label: "Lịch hẹn", to: "/schedule" },
+              { icon: clipboard, label: "Hồ sơ BA", to: "/medical-records" },
+              { icon: heart, label: "Gia đình", to: "/family" },
+            ].map(({ icon, label, to }) => (
+              <TransitionLink key={label} to={to} className="flex flex-col items-center gap-2">
+                <img src={icon} className="h-8 w-8" alt={label} />
                 <div className="text-center">{label}</div>
-              </div>
+              </TransitionLink>
             ))}
           </div>
         </Section>
@@ -62,6 +63,11 @@ function ProfilePage() {
               label="Gửi phản ảnh dịch vụ"
               icon={<ArrowRightIcon className="h-3.5 w-3.5" />}
               to="/feedback"
+            />
+            <Action
+              label="Admin Dashboard"
+              icon={<ArrowRightIcon className="h-3.5 w-3.5" />}
+              to="/admin"
             />
             <Action
               label="Thông tin bệnh viện"

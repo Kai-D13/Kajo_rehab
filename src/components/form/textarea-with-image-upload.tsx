@@ -40,7 +40,6 @@ function TextareaWithImageUpload({
     <div className="flex flex-grow flex-col space-y-4 rounded-lg border border-black/10 px-3 py-4 text-sm text-disabled">
       <Input.TextArea
         className="p-0"
-        autoHeight
         showCount
         maxLength={MAX_CHARS}
         {...textarea}
@@ -77,6 +76,8 @@ function TextareaWithImageUpload({
                   images.onChange(images.values.filter((_, i) => i !== index))
                 }
                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                title={`Remove image ${index + 1}`}
+                aria-label={`Remove uploaded image ${index + 1}`}
               >
                 ×
               </button>

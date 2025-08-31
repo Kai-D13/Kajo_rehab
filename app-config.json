@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "ZaUI Doctor",
+    "title": "KajoTai - Phòng khám vật lý trị liệu",
     "textColor": "black",
     "statusBar": "transparent",
     "actionBarHidden": true,
@@ -12,6 +12,6 @@
   "listAsyncJS": [],
   "template": {
     "name": "zaui-doctor",
-    "oaID": "4318657068771012646"
+    "oaID": "2339827548685253412"
   }
 }

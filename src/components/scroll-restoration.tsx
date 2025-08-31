@@ -28,8 +28,16 @@ function findElementWithScrollbar(rootElement: Element = document.body) {
 }
 
 export const ScrollRestoration: FC = () => {
-  const location = useLocation();
-  const [handle] = useRouteHandle();
+  // Add error boundary for router hooks
+  let location, handle;
+  
+  try {
+    location = useLocation();
+    [handle] = useRouteHandle();
+  } catch (error) {
+    console.warn('ScrollRestoration: Router hooks not available, skipping scroll restoration');
+    return <></>;
+  }
 
   useEffect(() => {
     // Look for the main scroll element on the page
@@ -52,7 +60,7 @@ export const ScrollRestoration: FC = () => {
       }
     }
     return () => {};
-  }, [location]);
+  }, [location, handle]);
 
   return <></>;
 };

@@ -2,15 +2,24 @@ import { DashedDivider } from "@/components/dashed-divider";
 import FabForm from "@/components/form/fab-form";
 import SuccessIcon from "@/components/icons/success";
 import PolarizedList from "@/components/polarized-list";
-import { bookingFormState, userState } from "@/state";
-import { formatShortDate, formatTimeSlot } from "@/utils/format";
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
+import { bookingFormState } from "@/state";
+import { AuthService } from "@/services/auth.service";
+import { formatShortDate, formatTimeSlot } from "@/utils/format";
 
 export default function Step3() {
   const navigate = useNavigate();
-  const { userInfo } = useAtomValue(userState);
+  const user = AuthService.getCurrentUser();
   const formData = useAtomValue(bookingFormState);
+
+  if (!user) {
+    return (
+      <div className="p-4">
+        <div className="text-center">Loading user data...</div>
+      </div>
+    );
+  }
 
   return (
     <FabForm
@@ -32,7 +41,7 @@ export default function Step3() {
           <DashedDivider />
           <PolarizedList
             items={[
-              ["Tên", userInfo.name],
+              ["Tên", user.name],
               formData.department && ["Khoa", formData.department.name],
               formData.doctor && ["Bác sĩ", formData.doctor.name],
               formData.slot && [
