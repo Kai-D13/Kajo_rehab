@@ -1,7 +1,7 @@
 import { Button } from "@/components/button";
 import SearchIcon from "@/components/icons/search";
 import { HTMLProps } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "zmp-ui";
 
 export default function SearchBar({
   className,
@@ -15,9 +15,7 @@ export default function SearchBar({
       onSubmit={(e) => {
         e.preventDefault();
         const keyword = new FormData(e.currentTarget).get("keyword") as string;
-        navigate(`/search?keyword=${encodeURIComponent(keyword)}`, {
-          viewTransition: true,
-        });
+        navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
       }}
     >
       <input

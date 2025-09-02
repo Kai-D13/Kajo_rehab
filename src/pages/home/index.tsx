@@ -6,11 +6,19 @@ import RemoteDiagnosis from './remote-diagnosis';
 import HealthNews from './health-news';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { UserProfile } from '@/components/auth/UserProfile';
+import { EnvDebug } from '@/components/debug/env-debug';
 import { Box } from 'zmp-ui';
 
 function HomePage() {
   return (
     <AuthGuard>
+      {/* Development Debug Panel */}
+      {import.meta.env.DEV && (
+        <>
+          <EnvDebug />
+        </>
+      )}
+      
       {/* User Profile Header */}
       <Box className="p-4 bg-blue-50">
         <UserProfile />

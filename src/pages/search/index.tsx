@@ -1,6 +1,6 @@
 import { searchResultState } from '@/state';
 import { useAtomValue } from 'jotai';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'zmp-ui';
 import NotFound from '../404';
 import SearchBar from './search-bar';
 import { Suspense, useMemo } from 'react';
@@ -9,8 +9,8 @@ import DepartmentItem from '@/components/items/department';
 import { ArticleItem } from '@/components/items/article';
 
 function SearchResultPage() {
-  const [params] = useSearchParams();
-  const keyword = params.get('keyword');
+  // Get search params from URL
+  const keyword = new URLSearchParams(window.location.search).get('keyword');
   const result = useAtomValue(searchResultState(keyword ?? ''));
 
   const content = useMemo(() => {

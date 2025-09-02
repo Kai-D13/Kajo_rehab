@@ -1,15 +1,15 @@
-import { Link, To } from "react-router-dom";
+import TransitionLink from "@/components/transition-link";
 
 interface ActionProps {
   label: string;
   badge?: number;
   icon: React.ReactNode;
-  to: To;
+  to: string;
 }
 
 export function Action({ label, badge, icon, to }: ActionProps) {
   return (
-    <Link className="flex items-center justify-between py-4" to={to}>
+    <TransitionLink className="flex items-center justify-between py-4" to={to}>
       <div className="flex items-center gap-1 text-sm">
         <div>{label}</div>
         {badge && (
@@ -19,6 +19,6 @@ export function Action({ label, badge, icon, to }: ActionProps) {
         )}
       </div>
       {icon}
-    </Link>
+    </TransitionLink>
   );
 }

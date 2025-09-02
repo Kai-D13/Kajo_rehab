@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { Page, Box, Button, Text, Input } from 'zmp-ui';
+import { Page, Box, Button, Text, Select, Input, useNavigate } from 'zmp-ui';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { FacilitySelector } from '@/components/booking/FacilitySelector';
-import { DoctorSelector } from '@/components/booking/DoctorSelector';
-import { TimeSlotPicker } from '@/components/booking/TimeSlotPicker';
+import FormItem from '@/components/form/item';
 import { bookingServiceV2, BookingData } from '@/services/booking-v2.service';
-import { Facility, Doctor } from '@/services/supabase';
-import { format } from 'date-fns';
+import { Facility } from '@/services/supabase';
+import { format, addDays } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+
+const { Option } = Select;
 
 export default function NewBookingPage() {
   const [step, setStep] = useState(1);
   const [selectedFacility, setSelectedFacility] = useState<Facility>();
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor>();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
   const [symptoms, setSymptoms] = useState<string[]>([]);
@@ -27,26 +26,22 @@ export default function NewBookingPage() {
       toast.error('Vui lòng chọn cơ sở');
       return;
     }
-    if (step === 2 && !selectedDoctor) {
-      toast.error('Vui lòng chọn bác sĩ');
-      return;
-    }
-    if (step === 3 && (!selectedDate || !selectedTime)) {
+    if (step === 2 && (!selectedDate || !selectedTime)) {
       toast.error('Vui lòng chọn thời gian');
       return;
     }
     
-    if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
     }
   };
 
-  const canProceedFromStep4 = () => {
+  const canProceedFromStep3 = () => {
     return symptoms.length > 0 && description.trim().length > 0;
   };
 
   const handleSubmit = async () => {
-    if (!selectedFacility || !selectedDoctor || !selectedDate || !selectedTime) {
+    if (!selectedFacility || !selectedDate || !selectedTime) {
       toast.error('Vui lòng hoàn thiện thông tin đặt lịch');
       return;
     }
@@ -66,8 +61,8 @@ export default function NewBookingPage() {
       setLoading(true);
       
       const bookingData: BookingData = {
-        doctor_id: selectedDoctor.id,
-        doctor_name: selectedDoctor.name,
+        doctor_id: 'auto-assign', // Sẽ tự động phân công bác sĩ
+        doctor_name: 'Bác sĩ được phân công',
         service_id: 'vat-ly-tri-lieu',
         service_name: 'Vật lý trị liệu, Phục hồi chức năng',
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
@@ -84,20 +79,20 @@ export default function NewBookingPage() {
         toast.success('Đặt lịch thành công!');
         console.log('✅ Booking created successfully, navigating to success page');
         
-        // Navigate to success page with full data
-        navigate('/booking/success', { 
-          state: { 
-            appointment: result.appointment,
-            qrCode: result.qrCode,
-            bookingDetails: {
-              facilityName: selectedFacility.name,
-              doctorName: selectedDoctor.name,
-              serviceName: 'Vật lý trị liệu, Phục hồi chức năng',
-              symptoms: symptoms,
-              description: description.trim()
-            }
+        // Store booking data and navigate to success page
+        sessionStorage.setItem('lastBooking', JSON.stringify({
+          appointment: result.appointment,
+          qrCode: result.qrCode,
+          bookingDetails: {
+            facilityName: selectedFacility.name,
+            doctorName: 'Bác sĩ được phân công',
+            serviceName: 'Vật lý trị liệu, Phục hồi chức năng',
+            symptoms: symptoms,
+            description: description.trim()
           }
-        });
+        }));
+        
+        navigate('/booking/success');
       } else {
         toast.error(result.message);
       }
@@ -113,35 +108,194 @@ export default function NewBookingPage() {
     switch (step) {
       case 1:
         return (
-          <FacilitySelector
-            selectedFacility={selectedFacility}
-            onFacilitySelect={(facility) => {
-              setSelectedFacility(facility);
-              setSelectedDoctor(undefined); // Reset doctor when facility changes
-            }}
-          />
+            <FormItem label="Cơ sở khám chữa bệnh">
+              <Select
+                placeholder="Chọn cơ sở y tế"
+                value={selectedFacility?.id}
+                onChange={(facilityId) => {
+                  const facilities = [
+                    { id: '1', name: 'KajoTai - Cơ sở 1 (Quận 1)', address: '123 Nguyễn Huệ, Quận 1, TP.HCM' },
+                    { id: '2', name: 'KajoTai - Cơ sở 2 (Quận 7)', address: '456 Nguyễn Thị Thập, Quận 7, TP.HCM' },
+                    { id: '3', name: 'KajoTai - Cơ sở 3 (Thủ Đức)', address: '789 Võ Văn Ngân, Thủ Đức, TP.HCM' }
+                  ];
+                  const facility = facilities.find(f => f.id === facilityId);
+                  setSelectedFacility(facility as any);
+                }}
+              >
+                <Option key="1" value="1" title="KajoTai - Cơ sở 1 (Quận 1)">
+                  <div>
+                    <div className="font-medium">KajoTai - Cơ sở 1 (Quận 1)</div>
+                    <div className="text-sm text-gray-500">123 Nguyễn Huệ, Quận 1, TP.HCM</div>
+                  </div>
+                </Option>
+                <Option key="2" value="2" title="KajoTai - Cơ sở 2 (Quận 7)">
+                  <div>
+                    <div className="font-medium">KajoTai - Cơ sở 2 (Quận 7)</div>
+                    <div className="text-sm text-gray-500">456 Nguyễn Thị Thập, Quận 7, TP.HCM</div>
+                  </div>
+                </Option>
+                <Option key="3" value="3" title="KajoTai - Cơ sở 3 (Thủ Đức)">
+                  <div>
+                    <div className="font-medium">KajoTai - Cơ sở 3 (Thủ Đức)</div>
+                    <div className="text-sm text-gray-500">789 Võ Văn Ngân, Thủ Đức, TP.HCM</div>
+                  </div>
+                </Option>
+              </Select>
+            </FormItem>
         );
       
       case 2:
         return (
-          <DoctorSelector
-            facilityId={selectedFacility?.id}
-            selectedDoctor={selectedDoctor}
-            onDoctorSelect={setSelectedDoctor}
-          />
-        );
-      
-      case 3:
-        return (
-          <TimeSlotPicker
-            doctorId={selectedDoctor?.id}
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            onTimeSelect={(date, time) => {
-              setSelectedDate(date);
-              setSelectedTime(time);
-            }}
-          />
+          <div className="space-y-4 p-4">
+            <div className="text-center space-y-2">
+              <div className="text-2xl font-semibold text-gray-800">
+                Chọn thời gian khám
+              </div>
+              <div className="text-gray-600">Chọn ngày và giờ phù hợp với lịch của bạn</div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              {/* Date Headers */}
+              <div className="grid grid-cols-8 bg-gray-50 border-b">
+                <div className="p-3 text-center font-semibold text-gray-700 border-r">
+                  Giờ khám
+                </div>
+                {Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)).map((day, index) => {
+                  const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                  const isPast = day < new Date();
+                  
+                  return (
+                    <div key={index} className={`p-3 text-center border-r last:border-r-0 ${
+                      isToday ? 'bg-blue-50 text-blue-700' : isPast ? 'bg-gray-100 text-gray-400' : 'text-gray-700'
+                    }`}>
+                      <div className="text-xs font-medium">
+                        {format(day, 'EEE', { locale: vi })}
+                      </div>
+                      <div className={`text-lg font-bold mt-1 ${isToday ? 'text-blue-600' : ''}`}>
+                        {format(day, 'dd')}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Morning Session */}
+              <div className="bg-yellow-50 border-b">
+                <div className="p-2 text-center text-sm font-semibold text-yellow-800 bg-yellow-100">
+                  ☀️ Buổi sáng (8:00 - 11:30)
+                </div>
+                {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'].map((time) => (
+                  <div key={time} className="grid grid-cols-8 border-b last:border-b-0">
+                    <div className="p-3 text-center font-medium text-gray-700 border-r bg-yellow-25 flex items-center justify-center">
+                      {time}
+                    </div>
+                    {Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)).map((day, dayIndex) => {
+                      const isSelected = selectedDate && 
+                        format(selectedDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd') && 
+                        selectedTime === time;
+                      const isPast = day < new Date() || 
+                        (format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && 
+                         time < format(new Date(), 'HH:mm'));
+                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+
+                      return (
+                        <div key={dayIndex} className="border-r last:border-r-0 p-1">
+                          <button
+                            onClick={() => {
+                              setSelectedDate(day);
+                              setSelectedTime(time);
+                            }}
+                            disabled={isPast || isWeekend}
+                            className={`w-full h-10 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-blue-500 text-white shadow-md transform scale-105' 
+                                : isPast || isWeekend
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-green-50 text-green-700 hover:bg-green-100 hover:shadow-sm border border-green-200'
+                            }`}
+                          >
+                            {isPast || isWeekend ? '×' : (isSelected ? '✓' : '○')}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+
+              {/* Afternoon Session */}
+              <div className="bg-blue-50">
+                <div className="p-2 text-center text-sm font-semibold text-blue-800 bg-blue-100">
+                  🌅 Buổi chiều (13:00 - 16:30)
+                </div>
+                {['13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'].map((time) => (
+                  <div key={time} className="grid grid-cols-8 border-b last:border-b-0">
+                    <div className="p-3 text-center font-medium text-gray-700 border-r bg-blue-25 flex items-center justify-center">
+                      {time}
+                    </div>
+                    {Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)).map((day, dayIndex) => {
+                      const isSelected = selectedDate && 
+                        format(selectedDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd') && 
+                        selectedTime === time;
+                      const isPast = day < new Date() || 
+                        (format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && 
+                         time < format(new Date(), 'HH:mm'));
+                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+
+                      return (
+                        <div key={dayIndex} className="border-r last:border-r-0 p-1">
+                          <button
+                            onClick={() => {
+                              setSelectedDate(day);
+                              setSelectedTime(time);
+                            }}
+                            disabled={isPast || isWeekend}
+                            className={`w-full h-10 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-blue-500 text-white shadow-md transform scale-105' 
+                                : isPast || isWeekend
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-green-50 text-green-700 hover:bg-green-100 hover:shadow-sm border border-green-200'
+                            }`}
+                          >
+                            {isPast || isWeekend ? '×' : (isSelected ? '✓' : '○')}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Selected Time Display */}
+            {selectedDate && selectedTime && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl border border-blue-200">
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-1">Thời gian đã chọn</div>
+                  <div className="text-lg font-bold text-blue-700">
+                    {format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })} - {selectedTime}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Legend */}
+            <div className="mt-4 flex justify-center space-x-6 text-sm">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+                <span className="text-gray-600">Có thể đặt</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                <span className="text-gray-600">Đã chọn</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-gray-100 rounded"></div>
+                <span className="text-gray-600">Không khả dụng</span>
+              </div>
+            </div>
+          </div>
         );
       
       case 4:
@@ -210,7 +364,7 @@ export default function NewBookingPage() {
                   <strong>🏢 Cơ sở:</strong> {selectedFacility?.name}
                 </Text>
                 <Text size="small">
-                  <strong>👨‍⚕️ Bác sĩ:</strong> {selectedDoctor?.name}
+                  <strong>👨‍⚕️ Bác sĩ:</strong> Bác sĩ được phân công
                 </Text>
                 <Text size="small">
                   <strong>📅 Thời gian:</strong> {selectedDate && format(selectedDate, 'dd/MM/yyyy')} lúc {selectedTime}
@@ -239,9 +393,8 @@ export default function NewBookingPage() {
   const getStepTitle = () => {
     switch (step) {
       case 1: return 'Chọn cơ sở';
-      case 2: return 'Chọn bác sĩ';
-      case 3: return 'Chọn thời gian';
-      case 4: return 'Xác nhận';
+      case 2: return 'Chọn thời gian';
+      case 3: return 'Xác nhận';
       default: return 'Đặt lịch hẹn';
     }
   };
@@ -255,7 +408,7 @@ export default function NewBookingPage() {
             type="neutral"
             size="small"
             className="mr-3"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
           >
             ← Quay lại
           </Button>
@@ -309,10 +462,10 @@ export default function NewBookingPage() {
               type="highlight"
               className="flex-1"
               loading={loading}
-              disabled={step === 4 && !canProceedFromStep4()}
-              onClick={step === 4 ? handleSubmit : handleNext}
+              disabled={step === 3 && !canProceedFromStep3()}
+              onClick={step === 3 ? handleSubmit : handleNext}
             >
-              {step === 4 ? 'Xác nhận đặt lịch' : 'Tiếp tục'}
+              {step === 3 ? 'Xác nhận đặt lịch' : 'Tiếp tục'}
             </Button>
           </div>
         </Box>

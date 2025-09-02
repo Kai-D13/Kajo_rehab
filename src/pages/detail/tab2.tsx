@@ -4,14 +4,15 @@ import { bookingFormState } from "@/state";
 import { Doctor } from "@/types";
 import { useSetAtom } from "jotai";
 import { useContext, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "zmp-ui";
 import { DetailPageContext } from "./context";
 
 export default function Tab2() {
   const { tab2 } = useContext(DetailPageContext);
 
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor>();
-  const [query] = useSearchParams();
+  // Get URL search params
+  const queryParams = new URLSearchParams(window.location.search);
   const navigate = useNavigate();
   const setBookingData = useSetAtom(bookingFormState);
 
@@ -35,7 +36,7 @@ export default function Tab2() {
         value={selectedDoctor}
         onChange={setSelectedDoctor}
         onLoadDoctors={(doctors) => {
-          const doctorId = query.get("doctor");
+          const doctorId = queryParams.get("doctor");
           const doctor = doctors.find((d) => d.id === Number(doctorId));
           if (doctor && !selectedDoctor) {
             setSelectedDoctor(doctor);

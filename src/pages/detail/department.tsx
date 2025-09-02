@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams } from "zmp-ui";
 import DetailPageTemplate from "./template";
 import { useAtomValue } from "jotai";
 import { departmentByIdState, symptomFormState } from "@/state";

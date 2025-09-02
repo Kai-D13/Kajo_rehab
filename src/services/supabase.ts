@@ -1,8 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
+import { config } from '@/config/production';
 
-// Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+// Use config from production.ts as fallback for Zalo Mini App
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || config.supabase.url;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || config.supabase.anonKey;
+
+// Environment validation
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing Supabase configuration:');
+  console.error('- URL:', supabaseUrl ? '✓' : '❌');
+  console.error('- Key:', supabaseKey ? '✓' : '❌');
+  
+  throw new Error('Supabase configuration is missing. Please check your configuration.');
+}
+
+console.log('✅ Supabase client initialized:', {
+  url: supabaseUrl,
+  key: supabaseKey ? `${supabaseKey.slice(0, 10)}...` : 'missing',
+  source: import.meta.env.VITE_SUPABASE_URL ? 'env' : 'config'
+});
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 

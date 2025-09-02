@@ -3,14 +3,14 @@ import Tabs from "@/components/tabs";
 import Tab1 from "./tab1";
 import Tab2 from "./tab2";
 import Tab3 from "./tab3";
-import { useSearchParams } from "react-router-dom";
 import { DetailPageContext, DetailPageTemplateProps } from "./context";
 import { useAtom } from "jotai";
 import { customTitleState } from "@/state";
 
 function DetailPageTemplate(props: DetailPageTemplateProps) {
-  const [query] = useSearchParams();
-  const tab = query.get("tab");
+  // Get URL search params
+  const queryParams = new URLSearchParams(window.location.search);
+  const tab = queryParams.get("tab");
   const [activeTab, setActiveTab] = useState(Number(tab) || 0);
   const [customTitle, setCustomTitle] = useAtom(customTitleState);
 

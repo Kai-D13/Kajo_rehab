@@ -247,4 +247,40 @@ export class QRService {
       throw new Error('Không thể tạo mã QR tùy chỉnh');
     }
   }
+
+  /**
+   * Extract QR data for reception app (what reception will see)
+   */
+  static async extractQRData(qrCode: string): Promise<{
+    appointmentId: string;
+    appointmentData: any;
+  } | null> {
+    try {
+      // For data URL QR codes, we need to decode the actual QR content
+      // In this implementation, we'll extract from the encrypted payload
+      
+      // This is a simplified version - in reality, you'd scan the QR code
+      // and get the encrypted payload, then decrypt it
+      console.log('🔍 Extracting QR data for reception app...');
+      
+      // Mock extraction for testing (replace with actual QR decode in production)
+      const mockAppointmentData = {
+        id: 'appointment-123',
+        patient_name: 'Test User',
+        doctor_name: 'BS. Test Doctor', 
+        appointment_date: new Date().toISOString().split('T')[0],
+        appointment_time: '14:00',
+        status: 'confirmed',
+        notes: 'Triệu chứng: Đau lưng, mỏi vai. Mô tả: Đau từ 2 tuần nay, tăng khi ngồi lâu.'
+      };
+
+      return {
+        appointmentId: mockAppointmentData.id,
+        appointmentData: mockAppointmentData
+      };
+    } catch (error) {
+      console.error('❌ Error extracting QR data:', error);
+      return null;
+    }
+  }
 }

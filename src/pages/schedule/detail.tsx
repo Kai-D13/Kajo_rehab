@@ -3,7 +3,7 @@ import PolarizedList from "@/components/polarized-list";
 import { QRCodeDisplay } from "@/components/qr-code-display";
 import { bookingFormState } from "@/state";
 import { useSetAtom } from "jotai";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "zmp-ui";
 import { useState, useEffect } from "react";
 import NotFound from "../404";
 import { TestResult } from "./test-result";
@@ -83,6 +83,7 @@ function ScheduleDetailPage() {
         console.log('🔍 Looking for appointment detail with ID:', id);
         // Find appointment by converted ID
         // Get current authenticated user
+        const { AuthService } = await import('@/services/auth.service');
         const currentUser = AuthService.getCurrentUser();
         if (!currentUser) {
           console.error('❌ No authenticated user found');

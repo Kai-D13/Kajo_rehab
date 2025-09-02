@@ -1,6 +1,6 @@
 import ArrowRightIcon from "@/components/icons/arrow-right";
-import { doctorsState } from "@/state";
-import { useAtomValue } from "jotai";
+import { mockDoctors } from "@/utils/mock";
+import { useEffect, useState } from "react";
 import prescription from "@/static/services/prescription.svg";
 import calendar from "@/static/services/calendar.svg";
 import clipboard from "@/static/services/clipboard.svg";
@@ -9,9 +9,17 @@ import Section from "@/components/section";
 import TransitionLink from "@/components/transition-link";
 import { Action } from "./action";
 import { VisitedDoctor } from "./visited-doctor";
+import { Doctor } from "@/types";
 
 function ProfilePage() {
-  const [d1, d2] = useAtomValue(doctorsState);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+
+  useEffect(() => {
+    // Load doctors without Suspense issues
+    mockDoctors().then(setDoctors);
+  }, []);
+
+  const [d1, d2] = doctors.slice(0, 2);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

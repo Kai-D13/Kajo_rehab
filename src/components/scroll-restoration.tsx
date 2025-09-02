@@ -1,66 +1,27 @@
-import { useRouteHandle } from "@/hooks";
 import { FC, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-
-const scrollPositions = {};
-
-function findElementWithScrollbar(rootElement: Element = document.body) {
-  if (
-    rootElement.scrollHeight > rootElement.clientHeight &&
-    rootElement.computedStyleMap().get("overflow")?.toString() !== "hidden"
-  ) {
-    // If the element has a scrollbar, return it
-    return rootElement;
-  }
-
-  // If the element doesn't have a scrollbar, check its child elements
-  for (let i = 0; i < rootElement.children.length; i++) {
-    const childElement = rootElement.children[i];
-    const elementWithScrollbar = findElementWithScrollbar(childElement);
-    if (elementWithScrollbar) {
-      // If a child element has a scrollbar, return it
-      return elementWithScrollbar;
-    }
-  }
-
-  // If none of the child elements have a scrollbar, return null
-  return null;
-}
 
 export const ScrollRestoration: FC = () => {
-  // Add error boundary for router hooks
-  let location, handle;
-  
-  try {
-    location = useLocation();
-    [handle] = useRouteHandle();
-  } catch (error) {
-    console.warn('ScrollRestoration: Router hooks not available, skipping scroll restoration');
-    return <></>;
-  }
-
   useEffect(() => {
-    // Look for the main scroll element on the page
-    const content = findElementWithScrollbar();
-    if (content) {
-      if (handle.scrollRestoration !== undefined) {
-        content.scrollTo(0, handle.scrollRestoration);
-      } else {
-        const key = `${location.pathname}${location.search}`;
-        if (scrollPositions[key]) {
-          // Scroll to the previous position on this new location
-          content.scrollTo(0, scrollPositions[key]);
-        }
-        const saveScrollPosition = (e: Event) => {
-          // Save position on scroll
-          scrollPositions[key] = content.scrollTop;
-        };
-        content.addEventListener("scroll", saveScrollPosition);
-        return () => content.removeEventListener("scroll", saveScrollPosition);
-      }
+    // Simple scroll restoration for Zalo Mini App
+    const pathname = window.location.pathname;
+    const key = `scroll-${pathname}`;
+    
+    // Restore scroll position
+    const savedPosition = sessionStorage.getItem(key);
+    if (savedPosition) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedPosition, 10));
+      }, 100);
     }
-    return () => {};
-  }, [location, handle]);
+    
+    // Save scroll position on scroll
+    const handleScroll = () => {
+      sessionStorage.setItem(key, window.scrollY.toString());
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-  return <></>;
+  return null;
 };

@@ -1,6 +1,6 @@
 import FabForm from "@/components/form/fab-form";
 import SuccessIcon from "@/components/icons/success";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "zmp-ui";
 
 function QuestionSentSuccessfully() {
   const navigate = useNavigate();
@@ -10,9 +10,7 @@ function QuestionSentSuccessfully() {
       fab={{
         children: "Về trang chủ",
         onClick() {
-          navigate("/", {
-            viewTransition: true,
-          });
+          navigate("/");
         },
       }}
     >

@@ -1,10 +1,9 @@
 // React core
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { RouterProvider } from "react-router-dom";
 
-// Router
-import router from "@/router";
+// ZMP Router App
+import RouterApp from "@/router-app";
 
 // ZaUI stylesheet
 import "zmp-ui/zaui.min.css";
@@ -28,15 +27,13 @@ window.addEventListener('error', (event) => {
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-  console.warn('� Unhandled promise rejection caught:', event.reason);
+  console.warn('🔄 Unhandled promise rejection caught:', event.reason);
   // Don't crash the app on production  
   event.preventDefault();
 });
 
-// DISABLE problematic services in production
-// Services causing GoTrueClient errors are disabled
-console.log('🚀 KajoTai Mini App starting... (Production Mode)');
+console.log('🚀 KajoTai Mini App starting... (ZMP Router Mode)');
 
-// Mount the app
+// Mount the app with ZMP Router
 const root = createRoot(document.getElementById("app")!);
-root.render(createElement(RouterProvider, { router }));
+root.render(createElement(RouterApp));

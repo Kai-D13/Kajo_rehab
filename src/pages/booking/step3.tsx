@@ -3,7 +3,7 @@ import FabForm from "@/components/form/fab-form";
 import SuccessIcon from "@/components/icons/success";
 import PolarizedList from "@/components/polarized-list";
 import { useAtomValue } from "jotai";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "zmp-ui";
 import { bookingFormState } from "@/state";
 import { AuthService } from "@/services/auth.service";
 import { formatShortDate, formatTimeSlot } from "@/utils/format";

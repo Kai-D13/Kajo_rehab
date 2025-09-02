@@ -1,35 +1,48 @@
 import Section from "@/components/section";
 import TransitionLink from "@/components/transition-link";
+import { useNavigate } from 'zmp-ui';
 import book from "@/static/book.svg";
 import history from "@/static/history.svg";
 import medicalRecord from "@/static/medical-record.svg";
-import { To } from "react-router-dom";
 
 interface QuickActionProps {
-  to: To;
+  to: string;
   icon: string;
   title: string;
   subtitle: string;
 }
 
-const QuickAction = ({ icon, title, subtitle, to }: QuickActionProps) => (
-  <TransitionLink
-    to={to}
-    className="flex items-center gap-2 rounded-xl bg-white p-3"
-  >
-    <img src={icon} className="h-11 w-11" />
-    <div className="flex flex-grow flex-col gap-1.5 self-stretch">
-      <div className="text-base font-medium">{title}</div>
-      <div className="text-xs text-disabled">{subtitle}</div>
+const QuickAction = ({ icon, title, subtitle, to }: QuickActionProps) => {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    console.log(`🎯 Navigating to: ${to}`);
+    try {
+      navigate(to, { viewTransition: true });
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+    }
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className="flex items-center gap-2 rounded-xl bg-white p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+    >
+      <img src={icon} className="h-11 w-11" />
+      <div className="flex flex-grow flex-col gap-1.5 self-stretch">
+        <div className="text-base font-medium">{title}</div>
+        <div className="text-xs text-disabled">{subtitle}</div>
+      </div>
     </div>
-  </TransitionLink>
-);
+  );
+};
 
 const QuickActions = () => {
   return (
     <Section className="pt-4 pb-5 grid grid-cols-2 gap-3">
       <QuickAction
-        to="/booking/new"
+        to="/booking/1"
         icon={book}
         title="Đặt lịch khám"
         subtitle="Đặt hẹn điều trị"

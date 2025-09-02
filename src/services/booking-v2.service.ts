@@ -4,6 +4,7 @@ import { QRService } from './qr.service';
 import { AuthService } from './auth.service';
 import { MockDatabaseService } from './mock-database.service';
 import { EnvironmentService } from './environment.service';
+import { realClinicBookingService, EnhancedBookingData } from './real-clinic-booking.service';
 import toast from 'react-hot-toast';
 
 // DISABLE SUPABASE in production for now to fix GoTrueClient errors
@@ -29,14 +30,13 @@ export interface CreateBookingResult {
 
 class BookingServiceV2 {
     constructor() {
-        // Always use mock data to avoid Supabase auth conflicts in production
-        console.log('🏥 BookingServiceV2 initialized with mock data mode');
+        console.log('🏥 BookingServiceV2 initialized - Production mode with Supabase');
     }
 
-    // Auto-confirmation booking with conflict detection
+    // Main booking method - now uses production service
     async createBooking(bookingData: BookingData): Promise<CreateBookingResult> {
         try {
-            console.log('🎯 Starting auto-confirmation booking...');
+            console.log('🎯 Creating booking with production service...');
             
             // Get authenticated user
             const currentUser = AuthService.getCurrentUser();
@@ -44,62 +44,91 @@ class BookingServiceV2 {
                 throw new Error('Vui lòng đăng nhập để đặt lịch hẹn');
             }
 
-            // 1. Check for conflicts
-            const hasConflict = await this.checkTimeConflict(
-                bookingData.doctor_id || 'default-doctor',
-                bookingData.appointment_date,
-                bookingData.appointment_time
-            );
-
-            if (hasConflict) {
-                throw new Error('Thời gian này đã có lịch hẹn khác. Vui lòng chọn thời gian khác!');
-            }
-
-            // 2. Create appointment object with complete data
-            const appointmentData: Partial<Appointment> = {
-                user_id: currentUser.id,
-                doctor_id: bookingData.doctor_id,
-                doctor_name: bookingData.doctor_name,
-                service_id: bookingData.service_id,
-                service_name: bookingData.service_name,
+            // Get phone number from user if available
+            const phoneNumber = await this.getUserPhoneNumber();
+            
+            // Transform legacy BookingData to EnhancedBookingData
+            const enhancedBookingData: EnhancedBookingData = {
+                customer_name: currentUser.name || 'Khách hàng',
+                phone_number: phoneNumber || 'Unknown',
                 appointment_date: bookingData.appointment_date,
                 appointment_time: bookingData.appointment_time,
                 symptoms: bookingData.symptoms,
-                notes: bookingData.notes,
-                status: 'confirmed', // Auto confirmed!
-                created_at: new Date().toISOString()
+                detailed_description: bookingData.notes,
+                doctor_id: bookingData.doctor_id,
+                service_id: bookingData.service_id
             };
 
-            let savedAppointment: Appointment;
-
-            // ALWAYS use mock database to avoid auth conflicts
-            console.log('🔧 Using mock database for booking (production safe)');
-            savedAppointment = await MockDatabaseService.createAppointment({
-                ...appointmentData,
-                facility_id: '1', // Default facility
-                duration_minutes: 30,
-                user_id: currentUser.id // Ensure user_id is included
-            } as any);
-
-            // 5. Generate QR Code
-            const qrCode = await QRService.generateQRCode(savedAppointment);
-
-            // Skip Supabase QR update to avoid auth conflicts
-            console.log('⚠️ Skipping Supabase QR update in production to avoid auth conflicts');
-
-            console.log('✅ Auto-confirmed booking created successfully:', savedAppointment.id);
+            // Use production booking service
+            const result = await realClinicBookingService.createBooking(enhancedBookingData);
             
-            toast.success('Đặt lịch thành công! Mã QR đã được tạo.');
+            if (result.success && result.booking) {
+                // Generate QR code for display
+                const qrCode = await QRService.generateQRCode({
+                    id: result.booking.id,
+                    user_id: result.booking.user_id || result.booking.phone_number,
+                    appointment_date: result.booking.appointment_date,
+                    appointment_time: result.booking.appointment_time
+                } as any);
 
-            return {
-                appointment: savedAppointment,
-                qrCode: qrCode,
-                success: true,
-                message: 'Lịch hẹn đã được tự động xác nhận và tạo mã QR thành công!'
-            };
+                return {
+                    appointment: result.booking as any,
+                    qrCode: qrCode,
+                    success: true,
+                    message: result.message
+                };
+            } else {
+                return {
+                    appointment: {} as Appointment,
+                    qrCode: '',
+                    success: false,
+                    message: result.message
+                };
+            }
 
         } catch (error) {
-            console.error('❌ Auto-confirmation booking failed:', error);
+            console.error('❌ Production booking failed:', error);
+            
+            // 🔧 Development fallback: Use mock service when Supabase fails
+            if (import.meta.env.DEV || window.location.hostname === 'localhost') {
+                console.log('🔧 Development mode: Falling back to mock database after Supabase failure');
+                
+                // Get authenticated user (we know it exists from earlier check)
+                const currentUser = AuthService.getCurrentUser()!;
+                
+                console.log('🔧 Using user ID for fallback booking:', currentUser.id);
+                
+                const mockBooking = await MockDatabaseService.createAppointment({
+                    user_id: currentUser.id, // Use the exact same user ID
+                    customer_name: currentUser.name || 'Khách hàng',
+                    phone_number: currentUser.phone || 'Unknown',
+                    doctor_id: bookingData.doctor_id,
+                    doctor_name: 'Dr. Mock',
+                    appointment_date: bookingData.appointment_date,
+                    appointment_time: bookingData.appointment_time,
+                    symptoms: Array.isArray(bookingData.symptoms) ? bookingData.symptoms.join(', ') : (bookingData.symptoms || ''),
+                    description: bookingData.notes || '',
+                    status: 'confirmed',
+                    notes: `Triệu chứng: ${Array.isArray(bookingData.symptoms) ? bookingData.symptoms.join(', ') : (bookingData.symptoms || 'Không có')}. Mô tả: ${bookingData.notes || 'Không có mô tả'}.`
+                });
+
+                console.log('✅ Mock booking created:', mockBooking);
+
+                // Generate QR code for display
+                const qrCode = await QRService.generateQRCode({
+                    id: mockBooking.id,
+                    user_id: mockBooking.patient_id || currentUser.id,
+                    appointment_date: mockBooking.appointment_date,
+                    appointment_time: mockBooking.appointment_time
+                } as any);
+
+                return {
+                    appointment: mockBooking as any,
+                    qrCode: qrCode,
+                    success: true,
+                    message: 'Đặt lịch thành công (Development Mode - Mock Database)'
+                };
+            }
             
             const errorMessage = error instanceof Error 
                 ? error.message 
@@ -113,6 +142,18 @@ class BookingServiceV2 {
                 success: false,
                 message: errorMessage
             };
+        }
+    }
+
+    // Get user's phone number (required for booking)
+    private async getUserPhoneNumber(): Promise<string | null> {
+        try {
+            // Try to get phone from Zalo API if available
+            const currentUser = AuthService.getCurrentUser();
+            return currentUser?.phone || null;
+        } catch (error) {
+            console.warn('Could not get phone number:', error);
+            return null;
         }
     }
 

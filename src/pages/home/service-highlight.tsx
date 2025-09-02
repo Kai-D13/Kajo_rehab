@@ -1,6 +1,5 @@
 import TransitionLink from "@/components/transition-link";
 import { ReactNode } from "react";
-import { To } from "react-router-dom";
 
 function ServiceHighlight(props: {
   title: string;
@@ -8,7 +7,7 @@ function ServiceHighlight(props: {
   cta?: ReactNode;
   image: string;
   className?: string;
-  to: To;
+  to: string;
 }) {
   return (
     <TransitionLink

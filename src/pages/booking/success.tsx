@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'zmp-ui';
 import { Page, Button, Box, Text } from 'zmp-ui';
 import { QRCodeDisplay } from '../../components/qr-code-display';
 import { Appointment } from '../../services/supabase.config';
@@ -7,7 +7,6 @@ import toast from 'react-hot-toast';
 
 const BookingSuccess: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [qrCode, setQrCode] = useState<string>('');
   const [bookingDetails, setBookingDetails] = useState<any>(null);
@@ -16,25 +15,27 @@ const BookingSuccess: React.FC = () => {
 
   useEffect(() => {
     loadAppointmentFromState();
-  }, [location.state]);
+  }, []);
 
   const loadAppointmentFromState = async () => {
     try {
-      console.log('📍 Success page state:', location.state);
+      // Get appointment data from session storage instead of location state
+      const appointmentData = sessionStorage.getItem('lastBooking');
       
-      if (!location.state || !location.state.appointment) {
+      if (!appointmentData) {
         setError('Không tìm thấy thông tin lịch hẹn');
-        console.error('❌ No appointment data in navigation state');
+        console.error('❌ No appointment data in session storage');
         return;
       }
 
-      const { appointment: appointmentData, qrCode: qrCodeData, bookingDetails: detailsData } = location.state;
+      const parsed = JSON.parse(appointmentData);
+      const { appointment: appointment, qrCode: qrCodeData, bookingDetails: detailsData } = parsed;
       
       console.log('✅ Loading appointment from state:', appointmentData);
       console.log('🔑 QR Code data:', qrCodeData ? 'Available' : 'Missing');
       console.log('📋 Booking details:', detailsData);
       
-      setAppointment(appointmentData);
+      setAppointment(appointment);
       setQrCode(qrCodeData || '');
       setBookingDetails(detailsData || null);
       

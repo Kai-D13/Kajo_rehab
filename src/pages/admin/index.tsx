@@ -5,7 +5,7 @@ import { Button } from "zmp-ui";
 import { useState, useEffect } from "react";
 import { MockDatabaseService } from "@/services/mock-database.service";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "zmp-ui";
 import ArrowRightIcon from "@/components/icons/arrow-right";
 import Page from "@/components/page";
 import Section from "@/components/section";

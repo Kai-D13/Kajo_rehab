@@ -5,20 +5,18 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vekrhqotmgszgsredkud.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzacmVka3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDM4NDM2MDAsImV4cCI6MjAxOTQxOTYwMH0.RLy8tAm-ZurkHtO8Z0-oHb1q1Y7_qJqB_ZqKsUOZo8s';
 
-// Create single instance to avoid multiple GoTrueClient warning
-let supabaseInstance: any = null;
+// Create single global instance to avoid multiple GoTrueClient warning
+let _supabaseInstance: any = null;
 
-export const supabase = supabaseInstance || (supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = _supabaseInstance || (_supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
     detectSessionInUrl: false
-  },
-  realtime: {
-    channels: {}
   }
 }));
 
+console.log('🔧 Supabase client initialized (single instance)');
 // Database Types
 export interface User {
   id: string;

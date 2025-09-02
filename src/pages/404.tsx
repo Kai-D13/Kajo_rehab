@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { To, useNavigate } from "react-router-dom";
+import { useNavigate } from "zmp-ui";
 import toast from "react-hot-toast";
 
 export default function NotFound(props: { noToast?: boolean }) {
@@ -8,9 +8,7 @@ export default function NotFound(props: { noToast?: boolean }) {
     if (!props.noToast) {
       toast.error("Trang không tồn tại");
     }
-    navigate(-1 as To, {
-      viewTransition: true,
-    });
+    navigate(-1);
   }, []);
   return <></>;
 }

@@ -1,6 +1,6 @@
 import { serviceByIdState, symptomFormState } from "@/state";
 import { useAtomValue } from "jotai";
-import { useParams } from "react-router-dom";
+import { useParams } from "zmp-ui";
 import NotFound from "../404";
 import DetailPageTemplate from "./template";
 

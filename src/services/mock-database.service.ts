@@ -164,24 +164,24 @@ export class MockDatabaseService {
     await this.simulateDelay();
 
     // Find existing user
-    let user = this.users.find(u => u.zalo_user_id === zaloUserId);
+    let user = this.users.find(u => u.zalo_id === zaloUserId);
     
     if (user) {
       // Update existing user
       user.name = userData.name;
       user.avatar = userData.avatar;
-      user.updated_at = new Date().toISOString();
       return user;
     }
 
-    // Create new user
+    // Create new user with consistent ID for development
+    const userId = zaloUserId.includes('dev') || zaloUserId === 'user-dev-123' ? 'user-dev-123' : `user-${Date.now()}`;
+    
     user = {
-      id: `user-${Date.now()}`,
-      zalo_user_id: zaloUserId,
+      id: userId,
+      zalo_id: zaloUserId,
       name: userData.name,
       avatar: userData.avatar,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
 
     this.users.push(user);
@@ -234,8 +234,8 @@ export class MockDatabaseService {
 
     const appointment: Appointment = {
       id: `appointment-${Date.now()}`,
-      patient_id: appointmentData.user_id || 'patient-dev-123', // Use actual user ID if available
-      user_id: appointmentData.user_id || 'patient-dev-123', // Store user_id for ownership check
+      patient_id: appointmentData.user_id || 'user-dev-123', // Use actual user ID if available
+      user_id: appointmentData.user_id || 'user-dev-123', // Store user_id for ownership check
       doctor_id: appointmentData.doctor_id,
       doctor_name: appointmentData.doctor_name,
       facility_id: appointmentData.facility_id || '1',
@@ -249,7 +249,7 @@ export class MockDatabaseService {
       description: appointmentData.description || '',
       notes: appointmentData.notes || '',
       qr_code: appointmentData.qr_code || null,
-      qr_code_expires_at: appointmentData.qr_expires_at || null,
+      qr_expires_at: appointmentData.qr_expires_at || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -339,7 +339,7 @@ export class MockDatabaseService {
     let userAppointments = this.appointments.filter(a => 
       a.user_id === userId || 
       a.patient_id === userId ||
-      (userId.includes('dev-user') && (a.patient_id === 'patient-dev-123' || a.user_id === 'patient-dev-123'))
+      (userId.includes('user-dev') && (a.patient_id === 'user-dev-123' || a.user_id === 'user-dev-123'))
     );
     console.log('👤 User appointments found:', userAppointments.length);
     

@@ -1,4 +1,4 @@
-import { getAccessToken, getUserInfo, authorize } from 'zmp-sdk';
+import { getAccessToken, getUserInfo, authorize, getUserID } from 'zmp-sdk';
 import { User } from './supabase.config';
 import { MockDatabaseService } from './mock-database.service';
 import toast from 'react-hot-toast';
@@ -21,13 +21,18 @@ export class AuthService {
       console.log('🔐 Requesting user permissions...');
       
       const permissions = await authorize({
-        scopes: ['scope.userInfo']
+        scopes: ['scope.userInfo', 'scope.userPhonenumber']
       });
 
       console.log('📋 Permission results:', permissions);
 
       if (!permissions['scope.userInfo']) {
         throw new Error('Cần cấp quyền truy cập thông tin để sử dụng ứng dụng');
+      }
+
+      // Check phone number permission (optional but recommended)
+      if (!permissions['scope.userPhonenumber']) {
+        console.warn('⚠️  Phone number permission not granted');
       }
 
       return true;
@@ -58,7 +63,7 @@ export class AuthService {
       if (isDevelopment) {
         // Mock user data for development - use consistent ID
         console.log('🔧 Development mode: Using mock user data');
-        const mockUserId = 'dev-user-123'; // Consistent development user ID
+        const mockUserId = 'user-dev-123'; // Consistent development user ID
         
         zaloUser = {
           userInfo: {
@@ -180,7 +185,36 @@ export class AuthService {
    * Lấy current user
    */
   static getCurrentUser(): User | null {
+    // Auto-initialize user in development mode if not already set
+    if (!this.currentUser && (import.meta.env.DEV || window.location.hostname === 'localhost')) {
+      console.log('🔧 Auto-creating development user...');
+      this.currentUser = {
+        id: 'user-dev-123',
+        zalo_id: 'user-dev-123',
+        name: 'Test User (Dev)',
+        phone: '+84123456789',
+        avatar: '/static/doctors/default-avatar.png',
+        email: 'dev@test.com',
+        created_at: new Date().toISOString()
+      };
+      
+      // Also set Zalo user
+      this.currentZaloUser = {
+        id: 'user-dev-123',
+        name: 'Test User (Dev)',
+        avatar: '/static/doctors/default-avatar.png'
+      };
+      
+      console.log('✅ Development user auto-created:', this.currentUser.id);
+    }
     return this.currentUser;
+  }
+
+  /**
+   * Set current user (for testing)
+   */
+  static setCurrentUser(user: User): void {
+    this.currentUser = user;
   }
 
   /**

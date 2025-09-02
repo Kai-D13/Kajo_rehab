@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'zmp-ui';
 import { MedicalRecord, Patient, TreatmentSession } from '@/services/supabase';
 import { MockMedicalRecordService } from '@/services/mock-medical-record.service';
 import { formatFullDate } from '@/utils/format';

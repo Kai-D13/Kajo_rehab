@@ -40,7 +40,10 @@ const NAV_ITEMS = [
 
 export default function Footer() {
   const [handle] = useRouteHandle();
-  if (handle.back) {
+  
+  // Hide footer on non-homepage routes (simplified check)
+  const isHomepage = window.location.pathname === '/';
+  if (!isHomepage && handle && 'back' in handle && handle.back) {
     return <></>;
   }
 
@@ -59,28 +62,27 @@ export default function Footer() {
         }}
       >
         {NAV_ITEMS.map((item) => {
+          const isActive = window.location.pathname === item.path;
           return (
             <TransitionLink
               to={item.path}
               key={item.path}
               className="flex flex-col items-center space-y-0.5 p-1 active:scale-105"
             >
-              {({ isActive }) =>
-                item.name ? (
-                  <>
-                    <div className="w-6 h-6 flex justify-center items-center">
-                      <item.icon active={isActive} />
-                    </div>
-                    <div
-                      className={`text-2xs truncate ${isActive ? "text-primary" : "text-disabled"}`}
-                    >
-                      {item.name}
-                    </div>
-                  </>
-                ) : (
-                  <item.icon active={isActive} />
-                )
-              }
+              {item.name ? (
+                <>
+                  <div className="w-6 h-6 flex justify-center items-center">
+                    <item.icon active={isActive} />
+                  </div>
+                  <div
+                    className={`text-2xs truncate ${isActive ? "text-primary" : "text-disabled"}`}
+                  >
+                    {item.name}
+                  </div>
+                </>
+              ) : (
+                <item.icon active={isActive} />
+              )}
             </TransitionLink>
           );
         })}

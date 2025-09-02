@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'zmp-ui';
 import { MedicalRecord, Patient } from '@/services/supabase';
 import { MockMedicalRecordService } from '@/services/mock-medical-record.service';
 import TransitionLink from '@/components/transition-link';
