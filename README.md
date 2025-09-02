@@ -1,31 +1,27 @@
 # 🏥 KatiNat Clinic Management System
+
+[![](https://img.shields.io/badge/zalo_mini_app-ready-blue.svg)](https://mini.zalo.me/) [![](https://img.shields.io/badge/template-zaui_doctor-green.svg)](https://github.com/Zalo-MiniApp/zaui-doctor) [![](https://camo.githubusercontent.com/eca483a3555fff97d2d8c6a2eeb51f0a08e4e1cc09e0684ef45e9db170ca954e/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f7061636b6167652d6a736f6e2f646570656e64656e63792d76657273696f6e2f5a616c6f2d4d696e694170702f7a6175692d646f63746f722f6465762f76697465)](https://vitejs.dev) [![](https://camo.githubusercontent.com/206702c09942d69993a3190a4642ee3151110f0895fde766f9e2103c0227d714/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f7061636b6167652d6a736f6e2f646570656e64656e63792d76657273696f6e2f5a616c6f2d4d696e694170702f7a6175692d646f63746f722f72656163742532467479706573)](https://react.dev)
+
 ## Zalo Mini App for Real Healthcare Operations
 
-<p style="display: flex; flex-wrap: wrap; gap: 4px">
-  <img alt="vite" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/dev/vite" />
-  <img alt="react" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/react" />
-  <img alt="zmp-ui" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/zmp-ui" />
-  <img alt="zmp-sdk" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/zmp-sdk" />
-  <img alt="supabase" src="https://img.shields.io/badge/supabase-enabled-green" />
-</p>
-
-**A production-ready Zalo Mini App specifically designed for KatiNat Clinic operations, built on the ZaUI Doctor template with comprehensive clinic management features.**
+A production-ready Zalo Mini App specifically designed for KatiNat Clinic operations, built on the ZaUI Doctor template with comprehensive clinic management features.
 
 ## 🚀 Production Status: READY FOR DEPLOYMENT
 
 ### ✅ **Week 1-2 COMPLETED:**
 - **User Authentication System** - Zalo integration with development/production modes
-- **Complete Booking Flow** - 3-step booking with QR code generation 
+- **Complete Booking Flow** - 3-step booking with QR code generation  
 - **Database Schema** - Supabase integration with mock database fallback
 - **Status Management** - Comprehensive appointment status workflow
 - **Error Handling** - Production-ready error boundaries and fallbacks
 - **System Diagnostics** - Real-time health monitoring and debugging tools
 
-|                      Live System                       |                  QR Code                  |
-| :---------------------------------------------: | :------------------------------------------: |
-| <img src="./docs/preview.webp" alt="Booking System"> | <img src="./docs/qr.webp" alt="QR Check-in"> |
+| Preview | Feature |
+|---------|---------|
+| ![Booking System](./docs/preview.webp) | Booking System |
+| ![QR Check-in](./docs/qr.webp) | QR Check-in |
 
-## 🎯 **Real Clinic Workflow Integration**
+## 🎯 Real Clinic Workflow Integration
 
 **Customer Journey:**
 ```
@@ -34,18 +30,18 @@ Visit Clinic → QR Scan → Check-in → Treatment
 ```
 
 ### **Core Features:**
-- **📱 Complete Booking System** - Multi-step appointment scheduling
-- **🔐 Zalo Authentication** - Seamless user login with Zalo ID
-- **📊 Status Management** - Pending → Confirmed → Checked-in → Completed
-- **🔲 QR Code Generation** - For clinic check-in system
-- **📈 System Diagnostics** - Real-time system health monitoring
-- **⚕️ Healthcare Data** - HIPAA-compliant data handling
+- 📱 **Complete Booking System** - Multi-step appointment scheduling
+- 🔐 **Zalo Authentication** - Seamless user login with Zalo ID
+- 📊 **Status Management** - Pending → Confirmed → Checked-in → Completed
+- 🔲 **QR Code Generation** - For clinic check-in system
+- 📈 **System Diagnostics** - Real-time system health monitoring
+- ⚕️ **Healthcare Data** - HIPAA-compliant data handling
 
 ### **Advanced Features:**
-- **🔄 Auto Status Updates** - Automatic no-show detection
-- **📱 Reception Dashboard** - Staff management interface (Week 3-4)
-- **📸 Media Uploads** - Image/video symptom attachments (Week 5-6)  
-- **🔔 Notifications** - SMS/Zalo OA integration (Week 5-6)
+- 🔄 **Auto Status Updates** - Automatic no-show detection
+- 📱 **Reception Dashboard** - Staff management interface (Week 3-4)
+- 📸 **Media Uploads** - Image/video symptom attachments (Week 5-6)
+- 🔔 **Notifications** - SMS/Zalo OA integration (Week 5-6)
 
 ## 📅 **Development Timeline**
 
@@ -210,6 +206,7 @@ This template can be customized by changing 5 main colors in `src/css/app.scss`:
   --highlight: #01bdaf1a;
   --background: #f2f9f9;
   --disabled: #9a9a9a;
+}
 ```
 
 | `--primary: #31992c`                      | `--primary: #992c2c`                          |
