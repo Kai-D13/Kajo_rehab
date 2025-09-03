@@ -17,7 +17,7 @@ export const supabase = _supabaseInstance || (_supabaseInstance = createClient(s
 }));
 
 console.log('🔧 Supabase client initialized (single instance)');
-// Database Types
+// Database Types - REAL SUPABASE SCHEMA
 export interface User {
   id: string;
   zalo_id: string;
@@ -33,51 +33,56 @@ export interface Staff {
   zalo_id: string;
   name: string;
   role: 'reception' | 'admin' | 'doctor';
-  clinic_id?: string;
-  active: boolean;
+  phone_number?: string;
+  email?: string;
+  is_active: boolean;
   created_at: string;
 }
 
-export interface Appointment {
+// REAL Bookings Table Structure from Supabase
+export interface Booking {
   id: string;
+  customer_name: string;
+  phone_number: string;
   user_id: string;
-  patient_id?: string; // For backwards compatibility
+  appointment_date: string; // date
+  appointment_time: string; // time without timezone
+  symptoms?: string;
+  detailed_description?: string;
+  image_urls?: string[]; // ARRAY
+  video_urls?: string[]; // ARRAY
+  booking_timestamp: string; // timestamptz
+  updated_at: string; // timestamptz
+  booking_status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  checkin_status: 'not_checked' | 'checked_in' | 'completed';
+  checkin_timestamp?: string; // timestamptz
+  qr_code_data?: string;
   doctor_id?: string;
-  doctor_name?: string; // Added for display
   service_id?: string;
-  service_name?: string; // Added for display
-  facility_id?: string;
-  appointment_date: string;
-  appointment_time: string;
-  duration_minutes?: number;
-  status: 'pending' | 'confirmed' | 'arrived' | 'completed' | 'cancelled';
-  symptoms?: string; // Added for medical details
-  description?: string; // Added for detailed notes
-  qr_code?: string;
-  qr_expires_at?: string;
-  notes?: string;
-  checked_in_at?: string;
-  checked_in_by?: string;
-  created_at: string;
-  updated_at?: string;
-  
-  // Relations
-  user?: User;
-  doctor?: any;
-  service?: any;
+  clinic_location?: string;
+  created_via: string;
+  created_at: string; // timestamptz
+  confirmed_by?: string;
+  confirmed_at?: string; // timestamptz
+  service_type?: string;
+  preferred_therapist?: string;
 }
 
-export interface CheckIn {
+// Checkin History Table
+export interface CheckinHistory {
   id: string;
-  appointment_id: string;
-  staff_id: string;
-  checked_in_at: string;
-  qr_data?: any;
+  booking_id: string;
+  checkin_timestamp: string; // timestamptz
+  checkin_method: 'qr_scan' | 'phone_lookup' | 'manual';
+  reception_staff_id?: string;
   notes?: string;
-  
-  // Relations
-  appointment?: Appointment;
-  staff?: Staff;
+}
+
+// For backward compatibility
+export interface Appointment extends Booking {
+  // Legacy fields mapping
+  status: Booking['booking_status'];
+  qr_code?: string; // mapped from qr_code_data
 }
 
 // Database Schema SQL for reference

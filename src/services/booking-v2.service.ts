@@ -19,6 +19,8 @@ export interface BookingData {
   appointment_time: string;
   symptoms?: string;
   notes?: string;
+  phone_number?: string;
+  detailed_description?: string;
 }
 
 export interface CreateBookingResult {
@@ -44,17 +46,17 @@ class BookingServiceV2 {
                 throw new Error('Vui lòng đăng nhập để đặt lịch hẹn');
             }
 
-            // Get phone number from user if available
+            // Get phone number from user if available, otherwise use a default
             const phoneNumber = await this.getUserPhoneNumber();
             
             // Transform legacy BookingData to EnhancedBookingData
             const enhancedBookingData: EnhancedBookingData = {
                 customer_name: currentUser.name || 'Khách hàng',
-                phone_number: phoneNumber || 'Unknown',
+                phone_number: phoneNumber || bookingData.phone_number || '0123456789', // Use form data or default
                 appointment_date: bookingData.appointment_date,
                 appointment_time: bookingData.appointment_time,
-                symptoms: bookingData.symptoms,
-                detailed_description: bookingData.notes,
+                symptoms: bookingData.symptoms || 'Không có triệu chứng cụ thể',
+                detailed_description: bookingData.notes || bookingData.detailed_description,
                 doctor_id: bookingData.doctor_id,
                 service_id: bookingData.service_id
             };

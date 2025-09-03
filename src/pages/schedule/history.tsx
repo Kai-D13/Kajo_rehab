@@ -2,8 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { ScheduleItem } from './schedule-item';
 import { MockDatabaseService } from '@/services/mock-database.service';
 import { SyncService } from '@/services/sync.service';
-import { Appointment } from '@/services/supabase';
-import { Booking } from '@/types';
+import { Appointment } from '@/services/supabase.config';
+import { Booking, Doctor } from '@/types';
 import { AuthService } from '@/services/auth.service';
 
 // Cache for bookings to prevent remount issues
@@ -12,48 +12,50 @@ let lastFetchTime = 0;
 const CACHE_DURATION = 5000; // 5 seconds
 
 // Helper function to convert Appointment to Booking format
-const convertAppointmentToBooking = async (appointment: Appointment): Promise<Booking | null> => {
+const convertAppointmentToBooking = async (appointment: any): Promise<Booking | null> => {
   try {
     console.log('Converting appointment:', appointment);
-    const doctor = appointment.doctor_id ? await MockDatabaseService.getDoctorById(appointment.doctor_id) : null;
-    console.log('Found doctor:', doctor);
-
-    if (!doctor) {
-      console.warn('No doctor found for appointment:', appointment.id);
-      return null;
+    let doctor: Doctor | null = null;
+    
+    if (appointment.doctor_id) {
+      try {
+        doctor = await MockDatabaseService.getDoctorById(appointment.doctor_id);
+        console.log('Found doctor:', doctor);
+      } catch (error) {
+        console.warn('Error getting doctor data:', error);
+      }
     }
 
+    // Ensure we have a doctor object
+    const finalDoctor: Doctor = doctor || {
+      id: parseInt(appointment.doctor_id || '1'),
+      name: 'Bác sĩ phụ trách',
+      specialties: 'Vật lý trị liệu',
+      languages: 'Vietnamese',
+      title: 'Bác sĩ', 
+      image: '',
+      isAvailable: true
+    };
+
     // Parse appointment time (assuming format like "14:30")
-    const timeParts = appointment.appointment_time.split(':');
+    const timeParts = (appointment.appointment_time || '00:00').split(':');
     const hours = parseInt(timeParts[0]) || 0;
     const minutes = parseInt(timeParts[1]) || 0;
     const half = minutes >= 30;
 
-    const specialtiesStr = Array.isArray(doctor.specialties) ? doctor.specialties.join(', ') : (doctor.specialties || 'General Practice');
-    const languagesStr = Array.isArray(doctor.languages) ? doctor.languages.join(', ') : (doctor.languages || 'Vietnamese');
+    const specialtiesStr = finalDoctor.specialties || 'General Practice';
+    const languagesStr = finalDoctor.languages || 'Vietnamese';
 
     // 🔧 Parse notes to extract symptoms and description
-    const parseNotesForDetails = (notes: string) => {
-      if (!notes) return { symptoms: [], description: '' };
-      
-      const symptomsMatch = notes.match(/Triệu chứng:\s*([^.]+)/);
-      const descriptionMatch = notes.match(/Mô tả:\s*(.+)/);
-      
-      return {
-        symptoms: symptomsMatch ? symptomsMatch[1].split(', ').map(s => s.trim()).filter(s => s) : [],
-        description: descriptionMatch ? descriptionMatch[1].trim() : ''
-      };
-    };
-
-    const parsedDetails = parseNotesForDetails(appointment.notes || '');
-    console.log('📋 Parsed details from notes:', parsedDetails);
+    console.log('Converting appointment to booking format:', appointment);
 
     const booking: Booking = {
-      id: parseInt(appointment.id.replace('appointment-', '')) || Date.now(),
-      status: appointment.status,
-      patientName: appointment.patient_name || 'Patient', // Use actual patient name
-      symptoms: appointment.symptoms?.length > 0 ? appointment.symptoms : parsedDetails.symptoms, // ✅ Use parsed symptoms
-      description: appointment.description || parsedDetails.description, // ✅ Use parsed description
+      id: appointment.id, // ✅ Use original UUID instead of converting to int
+      status: appointment.booking_status || 'scheduled',
+      patientName: appointment.customer_name || 'Patient',
+      symptoms: Array.isArray(appointment.symptoms) ? appointment.symptoms : 
+                (appointment.symptoms ? appointment.symptoms.split(',').map(s => s.trim()).filter(s => s) : []),
+      description: appointment.detailed_description || '',
       schedule: {
         date: new Date(appointment.appointment_date),
         time: {
@@ -62,17 +64,17 @@ const convertAppointmentToBooking = async (appointment: Appointment): Promise<Bo
         }
       },
       doctor: {
-        id: parseInt(doctor.id),
-        name: doctor.name,
-        title: doctor.title || specialtiesStr,
+        id: finalDoctor.id,
+        name: finalDoctor.name,
+        title: finalDoctor.title || specialtiesStr,
         languages: languagesStr,
         specialties: specialtiesStr,
-        image: doctor.avatar || '/static/doctors/default-avatar.png',
-        isAvailable: doctor.is_available
+        image: finalDoctor.image || '/static/doctors/default-avatar.png',
+        isAvailable: finalDoctor.isAvailable
       },
       department: {
         id: 1, // Mock department ID
-        name: appointment.department || specialtiesStr, // Use actual department if available
+        name: appointment.service_type || specialtiesStr,
         shortDescription: specialtiesStr,
         description: `Department of ${specialtiesStr}`,
         groupId: 1
@@ -115,7 +117,54 @@ function ScheduleHistoryPage() {
         }
 
         console.log('🔍 Fetching appointments for user:', currentUser.id);
-        const userAppointments = await MockDatabaseService.getUserAppointments(currentUser.id);
+        
+        // Try production service first, fallback to mock for development
+        let userAppointments: Appointment[] = [];
+        try {
+          // Use production booking service
+          const { realClinicBookingService } = await import('../../services/real-clinic-booking.service');
+          const productionBookings = await realClinicBookingService.getUserBookings(currentUser.id);
+          
+          if (productionBookings && productionBookings.length > 0) {
+            console.log('📋 Found production bookings:', productionBookings.length);
+            // Convert production bookings to proper Appointment format
+            userAppointments = productionBookings.map((booking: any): Appointment => ({
+              id: booking.id,
+              customer_name: booking.customer_name || 'Patient',
+              phone_number: booking.phone_number || '0000000000',
+              user_id: booking.user_id,
+              appointment_date: booking.appointment_date,
+              appointment_time: booking.appointment_time,
+              symptoms: booking.symptoms,
+              detailed_description: booking.detailed_description,
+              image_urls: booking.image_urls || [],
+              video_urls: booking.video_urls || [],
+              booking_timestamp: booking.booking_timestamp || booking.created_at,
+              updated_at: booking.updated_at,
+              booking_status: booking.booking_status || 'confirmed',
+              checkin_status: booking.checkin_status || 'not_checked',
+              checkin_timestamp: booking.checkin_timestamp,
+              qr_code_data: booking.qr_code_data,
+              doctor_id: booking.doctor_id,
+              service_id: booking.service_id,
+              clinic_location: booking.clinic_location,
+              created_via: booking.created_via || 'zalo_miniapp',
+              created_at: booking.created_at,
+              confirmed_by: booking.confirmed_by,
+              confirmed_at: booking.confirmed_at,
+              service_type: booking.service_type,
+              preferred_therapist: booking.preferred_therapist,
+              status: booking.booking_status || 'confirmed',
+              qr_code: booking.qr_code_data
+            }));
+          } else {
+            console.log('📋 No production bookings, trying mock data...');
+            userAppointments = await MockDatabaseService.getUserAppointments(currentUser.id);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching production bookings, using mock:', error);
+          userAppointments = await MockDatabaseService.getUserAppointments(currentUser.id);
+        }
 
         if (!isMounted) return;
         

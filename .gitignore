@@ -27,8 +27,15 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# Environment variables
 .env
+.env.local
+.env.production
+.env.development
+
+# IDE
+.vscode/
+.idea/
 
 # Misc
 .DS_Store
@@ -36,3 +43,7 @@ Thumbs.db
 
 # Production build
 www/
+dist/
+
+# Supabase
+supabase/.temp/

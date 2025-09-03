@@ -29,6 +29,10 @@ import AdminDashboard from "./pages/admin";
 import QRTestPage from "./pages/qr-test";
 import QRStaticCheckIn from "./pages/checkin";
 import DebugAppointmentsPage from "./pages/debug-appointments";
+import TestBookingPage from "./pages/test/supabase-booking-test-clean";
+import BookingDebugPage from "./pages/test/supabase-booking-debug";
+import SimpleTestPage from "./pages/test/simple-test";
+import RealUserDebugPage from "./pages/test/real-user-debug";
 
 // Zalo Mini App Routes Configuration
 export const routes = [
@@ -83,6 +87,22 @@ export const routes = [
       {
         path: "/booking/test", 
         element: <BookingTestPage />,
+      },
+      {
+        path: "/test/simple",
+        element: <SimpleTestPage />,
+      },
+      {
+        path: "/test/real-user-debug",
+        element: <RealUserDebugPage />,
+      },
+      {
+        path: "/test/supabase-booking",
+        element: <TestBookingPage />,
+      },
+      {
+        path: "/test/booking-debug", 
+        element: <BookingDebugPage />,
       },
       {
         path: "/ask",

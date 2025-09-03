@@ -1,8 +1,9 @@
-// Real Supabase Booking Service - Production Ready
+// Real Supabase Booking Service - Updated with REAL SCHEMA
 import { supabase } from './supabase.config';
 import { WorkingHoursService } from './working-hours.service';
 import { QRService } from './qr.service';
 import { AuthService } from './auth.service';
+import { Booking, CheckinHistory } from './supabase.config';
 import toast from 'react-hot-toast';
 
 export interface SupabaseBookingData {
@@ -14,11 +15,14 @@ export interface SupabaseBookingData {
     detailed_description?: string;
     doctor_id?: string;
     service_id?: string;
+    service_type?: string;
+    preferred_therapist?: string;
+    clinic_location?: string;
 }
 
 export interface SupabaseBookingResult {
     success: boolean;
-    booking?: any;
+    booking?: Booking;
     qrCode?: string;
     message: string;
 }
@@ -26,11 +30,11 @@ export interface SupabaseBookingResult {
 export class SupabaseBookingService {
     
     /**
-     * Create booking directly in Supabase with validation
+     * Create booking with REAL Supabase schema
      */
     static async createBooking(bookingData: SupabaseBookingData): Promise<SupabaseBookingResult> {
         try {
-            console.log('🏥 Creating booking with real Supabase integration:', bookingData);
+            console.log('🏥 Creating booking with REAL Supabase schema:', bookingData);
 
             // Step 1: Validate working hours
             const timeValidation = WorkingHoursService.validateBookingTime(
@@ -68,7 +72,8 @@ export class SupabaseBookingService {
                 };
             }
 
-            // Step 4: Create booking record
+            // Step 4: Create booking record with REAL schema
+            const now = new Date().toISOString();
             const bookingRecord = {
                 customer_name: bookingData.customer_name,
                 phone_number: bookingData.phone_number,
@@ -77,13 +82,22 @@ export class SupabaseBookingService {
                 appointment_time: bookingData.appointment_time,
                 symptoms: bookingData.symptoms || '',
                 detailed_description: bookingData.detailed_description || '',
+                doctor_id: bookingData.doctor_id || null,
+                service_id: bookingData.service_id || null,
+                service_type: bookingData.service_type || 'general',
+                preferred_therapist: bookingData.preferred_therapist || null,
+                clinic_location: bookingData.clinic_location || 'main',
                 booking_status: 'pending',
                 checkin_status: 'not_checked',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                created_via: 'zalo_miniapp',
+                booking_timestamp: now,
+                created_at: now,
+                updated_at: now,
+                image_urls: [], // Empty array initially
+                video_urls: [] // Empty array initially
             };
 
-            console.log('📝 Inserting booking into Supabase bookings table:', bookingRecord);
+            console.log('📝 Inserting booking with REAL schema:', bookingRecord);
 
             const { data, error } = await supabase
                 .from('bookings')
@@ -96,17 +110,17 @@ export class SupabaseBookingService {
                 throw new Error(`Database error: ${error.message}`);
             }
 
-            console.log('✅ Booking created successfully in Supabase:', data);
+            console.log('✅ Booking created successfully:', data);
 
             // Step 5: Generate QR code
-            const qrCode = await QRService.generateQRCode(data);
+            const qrCode = await QRService.generateQRCode(data as any);
 
             // Step 6: Update booking with QR code
             await this.updateBookingQR(data.id, qrCode);
 
             return {
                 success: true,
-                booking: data,
+                booking: data as Booking,
                 qrCode: qrCode,
                 message: 'Đặt lịch khám thành công! Vui lòng đến đúng giờ hẹn.'
             };

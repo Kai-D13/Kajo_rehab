@@ -1,14 +1,27 @@
-# 🏥 KatiNat Clinic Management System
+# KajoTai Rehab Clinic - Zalo Mini App
 
-[![](https://img.shields.io/badge/zalo_mini_app-ready-blue.svg)](https://mini.zalo.me/) [![](https://img.shields.io/badge/template-zaui_doctor-green.svg)](https://github.com/Zalo-MiniApp/zaui-doctor) [![](https://camo.githubusercontent.com/eca483a3555fff97d2d8c6a2eeb51f0a08e4e1cc09e0684ef45e9db170ca954e/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f7061636b6167652d6a736f6e2f646570656e64656e63792d76657273696f6e2f5a616c6f2d4d696e694170702f7a6175692d646f63746f722f6465762f76697465)](https://vitejs.dev) [![](https://camo.githubusercontent.com/206702c09942d69993a3190a4642ee3151110f0895fde766f9e2103c0227d714/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f7061636b6167652d6a736f6e2f646570656e64656e63792d76657273696f6e2f5a616c6f2d4d696e694170702f7a6175692d646f63746f722f72656163742532467479706573)](https://react.dev)
+🏥 **Hệ thống đặt lịch khám chữa bệnh trực tuyến** cho phòng khám phục hồi chức năng KajoTai
 
-## Zalo Mini App for Real Healthcare Operations
+## 📱 Tính năng chính
 
-A production-ready Zalo Mini App specifically designed for KatiNat Clinic operations, built on the ZaUI Doctor template with comprehensive clinic management features.
+### **🔥 User App (Zalo Mini App)**
+- ✅ Đặt lịch khám nhanh chóng
+- ✅ Chọn bác sĩ và thời gian phù hợp  
+- ✅ Xem lịch sử đặt lịch
+- ✅ Tích hợp thanh toán Zalo Pay
+- ✅ Nhận thông báo từ Zalo OA
 
-## 🚀 Production Status: READY FOR DEPLOYMENT
+### **🏥 Reception System**  
+- ✅ Dashboard quản lý booking real-time
+- ✅ Approve/Reject appointment
+- ✅ Check-in khách hàng
+- ✅ Xem thống kê theo ngày
 
-### ✅ **Week 1-2 COMPLETED:**
+### **� Backend Integration**
+- ✅ Supabase PostgreSQL database  
+- ✅ Real-time synchronization
+- ✅ QR Code generation
+- ✅ Authentication & Authorization
 - **User Authentication System** - Zalo integration with development/production modes
 - **Complete Booking Flow** - 3-step booking with QR code generation  
 - **Database Schema** - Supabase integration with mock database fallback

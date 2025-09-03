@@ -29,11 +29,11 @@ const convertAppointmentToBooking = async (appointment: Appointment): Promise<Bo
     const languagesStr = Array.isArray(doctor.languages) ? doctor.languages.join(', ') : (doctor.languages || 'Vietnamese');
 
     return {
-      id: parseInt(appointment.id.replace('appointment-', '')) || Date.now(),
-      status: appointment.status,
-      patientName: appointment.patient_name || 'Patient',
-      symptoms: appointment.symptoms || [],
-      description: appointment.description || '',
+      id: appointment.id, // ✅ Use original UUID string
+      status: appointment.booking_status || appointment.status,
+      patientName: appointment.customer_name || 'Patient',
+      symptoms: Array.isArray(appointment.symptoms) ? appointment.symptoms : [appointment.symptoms || ''],
+      description: appointment.detailed_description || '',
       schedule: {
         date: new Date(appointment.appointment_date),
         time: {
@@ -47,12 +47,12 @@ const convertAppointmentToBooking = async (appointment: Appointment): Promise<Bo
         title: doctor.title || specialtiesStr,
         languages: languagesStr,
         specialties: specialtiesStr,
-        image: doctor.avatar || '/static/doctors/default-avatar.png',
-        isAvailable: doctor.is_available
+        image: doctor.image || '/static/doctors/default-avatar.png',
+        isAvailable: doctor.isAvailable || true
       },
       department: {
         id: 1,
-        name: appointment.department || specialtiesStr,
+        name: appointment.service_type || specialtiesStr,
         shortDescription: specialtiesStr,
         description: `Department of ${specialtiesStr}`,
         groupId: 1
@@ -92,13 +92,70 @@ function ScheduleDetailPage() {
         }
 
         console.log('🔍 Fetching appointments for user:', currentUser.id);
-        const appointments = await MockDatabaseService.getUserAppointments(currentUser.id);
+        
+        // Try production service first, then fallback to mock
+        let appointments: any[] = [];
+        try {
+          const { realClinicBookingService } = await import('../../services/real-clinic-booking.service');
+          const productionBookings = await realClinicBookingService.getUserBookings(currentUser.id);
+          
+          if (productionBookings && productionBookings.length > 0) {
+            console.log('📋 Found production bookings for detail:', productionBookings.length);
+            // Convert production bookings to appointment format
+            appointments = productionBookings.map((booking: any) => ({
+              id: booking.id, // Use raw ID from production
+              user_id: booking.user_id,
+              facility_id: booking.facility_id || 'f1234567-1234-1234-1234-123456789001',
+              doctor_id: booking.doctor_id,
+              service_name: booking.service_name || 'Vật lý trị liệu',
+              appointment_date: booking.appointment_date,
+              appointment_time: booking.appointment_time,
+              status: booking.booking_status,
+              symptoms: booking.symptoms ? [booking.symptoms] : [],
+              notes: booking.detailed_description,
+              qr_code: booking.qr_code,
+              created_at: booking.created_at,
+              updated_at: booking.updated_at
+            }));
+          } else {
+            appointments = await MockDatabaseService.getUserAppointments(currentUser.id);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching production appointments, using mock:', error);
+          appointments = await MockDatabaseService.getUserAppointments(currentUser.id);
+        }
+        
         console.log('📋 Available appointments:', appointments.map(a => ({ id: a.id, status: a.status })));
         
-        const appointmentId = `appointment-${id}`;
-        console.log('🎯 Searching for appointment ID:', appointmentId);
+        // Search for appointment with both raw ID and prefixed ID
+        console.log('🎯 Searching for appointment ID:', id);
+        console.log('🎯 Available appointment IDs:', appointments.map(a => a.id));
         
-        const foundAppointment = appointments.find(apt => apt.id === appointmentId);
+        let foundAppointment = appointments.find(apt => {
+          // Try exact match first
+          if (apt.id === id) return true;
+          
+          // Try matching with prefix removed
+          const cleanId = apt.id.toString().replace('appointment-', '');
+          if (cleanId === id) return true;
+          
+          // Try matching with prefix added
+          if (`appointment-${apt.id}` === id) return true;
+          
+          return false;
+        });
+        
+        // If still not found, try reverse logic
+        if (!foundAppointment) {
+          console.log('🔄 Trying reverse ID matching...');
+          const searchId = id.startsWith('appointment-') ? id.replace('appointment-', '') : `appointment-${id}`;
+          console.log('🔄 Reverse search ID:', searchId);
+          foundAppointment = appointments.find(apt => 
+            apt.id === searchId || 
+            apt.id.toString().replace('appointment-', '') === searchId ||
+            `appointment-${apt.id}` === searchId
+          );
+        }
         
         if (foundAppointment) {
           console.log('✅ Found appointment:', foundAppointment);
@@ -108,7 +165,7 @@ function ScheduleDetailPage() {
           console.log('✅ Converted booking:', booking);
           setSchedule(booking);
         } else {
-          console.error('❌ Appointment not found:', appointmentId);
+          console.error('❌ Appointment not found:', id);
           console.error('Available IDs:', appointments.map(a => a.id));
         }
       } catch (error) {

@@ -82,10 +82,11 @@ export class RealClinicBookingService {
       // Get current user (optional for bookings from other channels)
       const currentUser = AuthService.getCurrentUser();
       
-      // 1. Check time conflict
+      // 1. Check time conflict với doctor_id
       const conflict = await this.checkTimeConflict(
         bookingData.appointment_date,
-        bookingData.appointment_time
+        bookingData.appointment_time,
+        bookingData.doctor_id
       );
       
       if (conflict) {
@@ -146,9 +147,22 @@ export class RealClinicBookingService {
         message: 'Đặt lịch thành công! Chờ xác nhận từ phòng khám.'
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error creating booking:', error);
-      const message = error instanceof Error ? error.message : 'Có lỗi xảy ra khi đặt lịch';
+      
+      // Handle specific database constraint errors
+      let message = 'Có lỗi xảy ra khi đặt lịch';
+      if (error?.code === '23505') {
+        // Unique constraint violation
+        if (error?.message?.includes('unique_booking_slot')) {
+          message = 'Thời gian này đã được đặt trước. Vui lòng chọn thời gian khác!';
+        } else {
+          message = 'Lịch hẹn này đã tồn tại. Vui lòng kiểm tra lại!';
+        }
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      
       toast.error(message);
       
       return {
@@ -158,28 +172,42 @@ export class RealClinicBookingService {
     }
   }
 
-  // 2. Check time conflict (disabled in development)
-  async checkTimeConflict(date: string, time: string): Promise<boolean> {
+  // 2. Check time conflict - ENABLED for all modes to prevent database constraint violations
+  async checkTimeConflict(date: string, time: string, doctorId?: string): Promise<boolean> {
     try {
-      // Skip conflict check in development to avoid blocking bookings
-      if (import.meta.env.DEV) {
-        console.log('🔧 Development mode: Skipping time conflict check');
-        return false;
-      }
-
-      const { data, error } = await this.supabase
+      console.log(`� Checking time conflict for ${date} ${time} (doctor: ${doctorId || 'any'})`);
+      
+      let query = this.supabase
         .from('bookings')
-        .select('id')
+        .select('id, customer_name, doctor_id')
         .eq('appointment_date', date)
         .eq('appointment_time', time)
         .in('booking_status', ['pending', 'confirmed']);
 
-      if (error) throw error;
+      // If doctor_id is specified, check for that specific doctor
+      if (doctorId) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('❌ Error checking time conflict:', error);
+        throw error; // Fail safely to prevent constraint violation
+      }
       
-      return data && data.length > 0;
+      const hasConflict = data && data.length > 0;
+      
+      if (hasConflict) {
+        console.log(`⚠️ TIME CONFLICT DETECTED:`, data);
+      } else {
+        console.log('✅ No time conflicts found');
+      }
+      
+      return hasConflict;
     } catch (error) {
-      console.error('Error checking time conflict:', error);
-      return false; // Don't block booking on error
+      console.error('❌ Time conflict check failed:', error);
+      throw error; // Fail safely
     }
   }
 

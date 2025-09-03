@@ -52,7 +52,7 @@ export interface Feedback {
 }
 
 export interface Booking {
-  id: number;
+  id: string | number; // ✅ Support both UUID strings and legacy numeric IDs
   status: string;
   patientName: string;
   schedule: TimeSlot;

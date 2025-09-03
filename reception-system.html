@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Hệ thống Lễ tân - Quản lý Đặt lịch</title>
+    <script         // Production Supabase configuration - ADMIN ACCESS
+        const SUPABASE_URL = 'https://vekrhqotmgszgsredkud.supabase.co';
+        // ✅ Use CORRECT SERVICE ROLE key for admin operations
+        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzcmVka3VkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTkzMjU1NiwiZXhwIjoyMDcxNTA4NTU2fQ.R9HBRVt9Cg1jThW0k9SfFQpylLBEI_KTTS4aCcUmjTE';
+        
+        // Initialize Supabase client with SERVICE ROLE for admin access
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);ps://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-hospital text-blue-600 text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Hệ thống Lễ tân</h1>
+                        <p class="text-sm text-gray-600">Quản lý đặt lịch khám bệnh</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm">
+                        <span class="text-gray-600">Lễ tân:</span>
+                        <span class="font-medium">Admin User</span>
+                    </div>
+                    <button onclick="logout()" 
+                            class="text-sm bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition-colors">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Đăng xuất
+                    </button>
+                    <div id="currentTime" class="text-sm text-gray-600"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Stats -->
+    <div id="loginForm" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="text-center mb-6">
+                <i class="fas fa-lock text-4xl text-blue-600 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800">Đăng nhập hệ thống</h2>
+                <p class="text-gray-600">Vui lòng đăng nhập để tiếp tục</p>
+            </div>
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tên đăng nhập</label>
+                    <input type="text" id="username" required
+                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="admin, reception1, reception2...">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Mật khẩu</label>
+                    <input type="password" id="password" required
+                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Nhập mật khẩu">
+                </div>
+                <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Đăng nhập
+                </button>
+            </form>
+            <div class="mt-4 text-xs text-gray-500 text-center">
+                <p>Demo accounts:</p>
+                <p>admin/admin123 | reception1/reception123</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <div class="flex items-center">
+                    <div class="p-3 bg-yellow-100 rounded-lg">
+                        <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Chờ xác nhận</p>
+                        <p id="pendingCount" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 rounded-lg">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Đã xác nhận</p>
+                        <p id="confirmedCount" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-100 rounded-lg">
+                        <i class="fas fa-user-check text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Đã check-in</p>
+                        <p id="checkedInCount" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <div class="flex items-center">
+                    <div class="p-3 bg-purple-100 rounded-lg">
+                        <i class="fas fa-calendar-day text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Hôm nay</p>
+                        <p id="todayCount" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="bg-white p-4 rounded-lg shadow-sm border mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Ngày</label>
+                    <input type="date" id="dateFilter" class="border rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+                    <select id="statusFilter" class="border rounded-lg px-3 py-2 text-sm">
+                        <option value="">Tất cả</option>
+                        <option value="pending">Chờ xác nhận</option>
+                        <option value="confirmed">Đã xác nhận</option>
+                        <option value="completed">Hoàn thành</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
+                    <input type="text" id="searchInput" placeholder="Tên, SĐT..." 
+                           class="border rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div class="flex-1"></div>
+                <button onclick="refreshData()" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">
+                    <i class="fas fa-refresh mr-2"></i>Làm mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Bookings Table -->
+        <div class="bg-white rounded-lg shadow-sm border">
+            <div class="p-4 border-b">
+                <h2 class="text-lg font-semibold text-gray-800">📋 Danh sách đặt lịch</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Thông tin bệnh nhân
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Lịch hẹn
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Trạng thái
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Triệu chứng
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Thao tác
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingsTable" class="bg-white divide-y divide-gray-200">
+                        <!-- Dynamic content will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="loadingState" class="p-8 text-center">
+                <i class="fas fa-spinner fa-spin text-gray-400 text-2xl mb-2"></i>
+                <p class="text-gray-600">Đang tải dữ liệu...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="p-8 text-center hidden">
+                <i class="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-600">Không có lịch hẹn nào</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Detail Modal -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Chi tiết đặt lịch</h3>
+                        <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="detailContent">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Production Supabase configuration - ADMIN ACCESS
+        const SUPABASE_URL = 'https://vekrhqotmgszgsredkud.supabase.co';
+        // Use SERVICE ROLE key for admin operations
+        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzZ3pnc3JlZGt1ZCIsInJvbGUiOiJzZXJ2aWNlX3JvbGUiLCJpYXQiOjE3MjUzMDQ1NTQsImV4cCI6MjA0MDg4MDU1NH0.lXvCgxOYmg2sVK4qQWBB3NfKvhTnlbMdFmkxOqiKQ5A';
+        
+        // Initialize Supabase client with SERVICE ROLE for admin access
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        
+        let bookings = [];
+        let filteredBookings = [];
+        let currentUser = null;
+
+        // Simple authentication for demo
+        const STAFF_CREDENTIALS = {
+            'admin': 'admin123',
+            'reception1': 'reception123', 
+            'reception2': 'reception123'
+        };
+
+        // Check if user is logged in
+        function checkAuthentication() {
+            const savedUser = localStorage.getItem('reception_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('loginForm').classList.add('hidden');
+                return true;
+            }
+            return false;
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (STAFF_CREDENTIALS[username] && STAFF_CREDENTIALS[username] === password) {
+                currentUser = {
+                    username: username,
+                    role: username === 'admin' ? 'admin' : 'reception',
+                    loginTime: new Date().toISOString()
+                };
+                
+                localStorage.setItem('reception_user', JSON.stringify(currentUser));
+                document.getElementById('loginForm').classList.add('hidden');
+                
+                // Update header
+                document.querySelector('header .font-medium').textContent = username;
+                
+                // Load data
+                loadBookings();
+                
+                console.log('✅ Login successful:', username);
+            } else {
+                alert('❌ Sai tên đăng nhập hoặc mật khẩu!');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('reception_user');
+            currentUser = null;
+            document.getElementById('loginForm').classList.remove('hidden');
+            location.reload();
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+            
+            // Check authentication first
+            if (checkAuthentication()) {
+                loadBookings();
+            }
+            
+            // Set default date to today
+            document.getElementById('dateFilter').valueAsDate = new Date();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('dateFilter').addEventListener('change', filterBookings);
+            document.getElementById('statusFilter').addEventListener('change', filterBookings);
+            document.getElementById('searchInput').addEventListener('input', filterBookings);
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString('vi-VN');
+        }
+
+        async function loadBookings() {
+            try {
+                console.log('🔄 Loading bookings from Supabase...');
+                
+                const { data, error } = await supabaseClient
+                    .from('bookings')
+                    .select('*')
+                    .order('appointment_date', { ascending: true })
+                    .order('appointment_time', { ascending: true });
+
+                if (error) {
+                    console.error('❌ Error loading bookings:', error);
+                    return;
+                }
+
+                bookings = data || [];
+                console.log('✅ Loaded bookings:', bookings.length);
+                
+                updateStats();
+                filterBookings();
+                
+            } catch (error) {
+                console.error('❌ Exception loading bookings:', error);
+            }
+        }
+
+        function updateStats() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            const pending = bookings.filter(b => b.booking_status === 'pending').length;
+            const confirmed = bookings.filter(b => b.booking_status === 'confirmed').length;
+            const checkedIn = bookings.filter(b => b.checkin_status === 'checked_in').length;
+            const todayBookings = bookings.filter(b => b.appointment_date === today).length;
+
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('confirmedCount').textContent = confirmed;
+            document.getElementById('checkedInCount').textContent = checkedIn;
+            document.getElementById('todayCount').textContent = todayBookings;
+        }
+
+        function filterBookings() {
+            const dateFilter = document.getElementById('dateFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchFilter = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredBookings = bookings.filter(booking => {
+                const matchDate = !dateFilter || booking.appointment_date === dateFilter;
+                const matchStatus = !statusFilter || booking.booking_status === statusFilter;
+                const matchSearch = !searchFilter || 
+                    booking.customer_name.toLowerCase().includes(searchFilter) ||
+                    booking.phone_number.includes(searchFilter);
+
+                return matchDate && matchStatus && matchSearch;
+            });
+
+            renderBookings();
+        }
+
+        function renderBookings() {
+            const tbody = document.getElementById('bookingsTable');
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+
+            loadingState.classList.add('hidden');
+
+            if (filteredBookings.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            tbody.innerHTML = filteredBookings.map(booking => {
+                const statusClass = getStatusClass(booking.booking_status);
+                const statusText = getStatusText(booking.booking_status);
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-4">
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">${booking.customer_name}</div>
+                                <div class="text-sm text-gray-500">${booking.phone_number}</div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900">${formatDate(booking.appointment_date)}</div>
+                            <div class="text-sm text-gray-500">${booking.appointment_time}</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <span class="${statusClass} px-2 py-1 text-xs font-medium rounded-full">
+                                ${statusText}
+                            </span>
+                            ${booking.checkin_status === 'checked_in' ? 
+                                '<div class="text-xs text-blue-600 mt-1"><i class="fas fa-check-circle mr-1"></i>Đã check-in</div>' : ''}
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 max-w-xs truncate" title="${booking.symptoms || 'Không có triệu chứng'}">
+                                ${booking.symptoms || 'Không có triệu chứng'}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex space-x-2">
+                                <button onclick="viewDetails('${booking.id}')" 
+                                        class="text-blue-600 hover:text-blue-800 text-sm">
+                                    <i class="fas fa-eye mr-1"></i>Xem
+                                </button>
+                                ${booking.booking_status === 'pending' ? `
+                                    <button onclick="updateStatus('${booking.id}', 'confirmed')" 
+                                            class="text-green-600 hover:text-green-800 text-sm">
+                                        <i class="fas fa-check mr-1"></i>Duyệt
+                                    </button>
+                                    <button onclick="updateStatus('${booking.id}', 'cancelled')" 
+                                            class="text-red-600 hover:text-red-800 text-sm">
+                                        <i class="fas fa-times mr-1"></i>Hủy
+                                    </button>
+                                ` : ''}
+                                ${booking.booking_status === 'confirmed' && booking.checkin_status !== 'checked_in' ? `
+                                    <button onclick="checkIn('${booking.id}')" 
+                                            class="text-blue-600 hover:text-blue-800 text-sm">
+                                        <i class="fas fa-qrcode mr-1"></i>Check-in
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'confirmed': 'bg-green-100 text-green-800',
+                'completed': 'bg-blue-100 text-blue-800',
+                'cancelled': 'bg-red-100 text-red-800'
+            };
+            return classes[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'pending': 'Chờ xác nhận',
+                'confirmed': 'Đã xác nhận',
+                'completed': 'Hoàn thành',
+                'cancelled': 'Đã hủy'
+            };
+            return texts[status] || 'Không rõ';
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('vi-VN', {
+                weekday: 'short',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        async function updateStatus(bookingId, newStatus) {
+            if (!confirm(`Bạn có chắc chắn muốn ${newStatus === 'confirmed' ? 'duyệt' : 'hủy'} lịch hẹn này?`)) {
+                return;
+            }
+
+            try {
+                console.log(`🔄 Updating booking ${bookingId} to ${newStatus}...`);
+                
+                const { error } = await supabaseClient
+                    .from('bookings')
+                    .update({ 
+                        booking_status: newStatus,
+                        confirmed_at: newStatus === 'confirmed' ? new Date().toISOString() : null,
+                        confirmed_by: newStatus === 'confirmed' ? 'admin' : null
+                    })
+                    .eq('id', bookingId);
+
+                if (error) {
+                    console.error('❌ Error updating status:', error);
+                    alert('Có lỗi xảy ra khi cập nhật trạng thái');
+                    return;
+                }
+
+                console.log('✅ Status updated successfully');
+                alert(`Đã ${newStatus === 'confirmed' ? 'duyệt' : 'hủy'} lịch hẹn thành công!`);
+                
+                // Reload data
+                loadBookings();
+                
+            } catch (error) {
+                console.error('❌ Exception updating status:', error);
+                alert('Có lỗi xảy ra khi cập nhật trạng thái');
+            }
+        }
+
+        async function checkIn(bookingId) {
+            if (!confirm('Xác nhận bệnh nhân đã có mặt tại phòng khám?')) {
+                return;
+            }
+
+            try {
+                console.log(`🔄 Checking in booking ${bookingId}...`);
+                
+                const { error } = await supabaseClient
+                    .from('bookings')
+                    .update({ 
+                        checkin_status: 'checked_in',
+                        checkin_timestamp: new Date().toISOString()
+                    })
+                    .eq('id', bookingId);
+
+                if (error) {
+                    console.error('❌ Error checking in:', error);
+                    alert('Có lỗi xảy ra khi check-in');
+                    return;
+                }
+
+                console.log('✅ Check-in successful');
+                alert('Đã check-in thành công!');
+                
+                // Reload data
+                loadBookings();
+                
+            } catch (error) {
+                console.error('❌ Exception checking in:', error);
+                alert('Có lỗi xảy ra khi check-in');
+            }
+        }
+
+        function viewDetails(bookingId) {
+            const booking = bookings.find(b => b.id === bookingId);
+            if (!booking) return;
+
+            const content = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Họ tên</label>
+                            <p class="text-sm text-gray-900">${booking.customer_name}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Số điện thoại</label>
+                            <p class="text-sm text-gray-900">${booking.phone_number}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Ngày hẹn</label>
+                            <p class="text-sm text-gray-900">${formatDate(booking.appointment_date)}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Giờ hẹn</label>
+                            <p class="text-sm text-gray-900">${booking.appointment_time}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Triệu chứng</label>
+                        <p class="text-sm text-gray-900">${booking.symptoms || 'Không có triệu chứng'}</p>
+                    </div>
+
+                    ${booking.detailed_description ? `
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Mô tả chi tiết</label>
+                            <p class="text-sm text-gray-900">${booking.detailed_description}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Trạng thái</label>
+                            <span class="${getStatusClass(booking.booking_status)} px-2 py-1 text-xs font-medium rounded-full">
+                                ${getStatusText(booking.booking_status)}
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Check-in</label>
+                            <p class="text-sm ${booking.checkin_status === 'checked_in' ? 'text-green-600' : 'text-gray-500'}">
+                                ${booking.checkin_status === 'checked_in' ? '✅ Đã check-in' : '⏳ Chưa check-in'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Thời gian đặt</label>
+                        <p class="text-sm text-gray-900">${new Date(booking.created_at).toLocaleString('vi-VN')}</p>
+                    </div>
+
+                    ${booking.qr_code_data ? `
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">QR Code</label>
+                            <div class="bg-white p-4 border rounded-lg text-center">
+                                <div id="qr-${bookingId}"></div>
+                                <p class="text-xs text-gray-500 mt-2">ID: ${booking.id}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            document.getElementById('detailContent').innerHTML = content;
+            document.getElementById('detailModal').classList.remove('hidden');
+
+            // Generate QR code if available
+            if (booking.qr_code_data && typeof QRCode !== 'undefined') {
+                new QRCode(document.getElementById(`qr-${bookingId}`), {
+                    text: booking.qr_code_data,
+                    width: 150,
+                    height: 150
+                });
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function refreshData() {
+            loadBookings();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailModal();
+            } else if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                e.preventDefault();
+                refreshData();
+            }
+        });
+    </script>
+
+    <!-- QR Code Library (optional for QR display) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</body>
+</html>

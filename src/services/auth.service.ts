@@ -182,6 +182,25 @@ export class AuthService {
   }
 
   /**
+   * Create user with real Zalo ID for testing
+   */
+  static createTestUserWithRealId(zaloId: string): User {
+    const testUser: User = {
+      id: `user-${zaloId}`,
+      zalo_id: zaloId,
+      name: 'Test User (Real Zalo ID)',
+      phone: '0123456789',
+      email: `user${zaloId}@test.com`,
+      avatar: '',
+      created_at: new Date().toISOString()
+    };
+    
+    this.currentUser = testUser;
+    console.log('✅ Created test user with real Zalo ID:', testUser);
+    return testUser;
+  }
+
+  /**
    * Lấy current user
    */
   static getCurrentUser(): User | null {
