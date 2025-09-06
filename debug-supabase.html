@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Hệ thống Lễ tân - Debug</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+            <h1 class="text-2xl font-bold mb-6">🔧 Debug Supabase Connection</h1>
+            
+            <div class="space-y-4">
+                <div>
+                    <button onclick="testPublicKey()" class="bg-blue-600 text-white px-4 py-2 rounded mr-4">
+                        Test Public Key
+                    </button>
+                    <button onclick="testServiceKey()" class="bg-green-600 text-white px-4 py-2 rounded mr-4">
+                        Test Service Key
+                    </button>
+                    <button onclick="testServiceKey2()" class="bg-purple-600 text-white px-4 py-2 rounded">
+                        Test Service Key 2
+                    </button>
+                </div>
+                
+                <div id="results" class="bg-gray-100 p-4 rounded border min-h-96 font-mono text-sm whitespace-pre-wrap"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://vekrhqotmgszgsredkud.supabase.co';
+        
+        // Public/Anon key - From working service
+        const PUBLIC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzcmVka3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0NjU1NjksImV4cCI6MjA1MTA0MTU2OX0.r1ztZfPluvLtQEGGVUxpMZlpjyFKkHxCO5yDRXK0YyM';
+        
+        // Service role keys  
+        const SERVICE_KEY_1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzredkud2QiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNzU1OTMyNTU2LCJleHAiOjIwNzE1MDg1NTZ9.R9HBRVt9Cg1jThW0k9SfFQpylLBEI_KTTS4aCcUmjTE';
+        
+        const SERVICE_KEY_2 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzredkud2QiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNzI1MzA0NTU0LCJleHAiOjIwNDA4ODA1NTR9.lXvCgxOYmg2sVK4qQWBB3NfKvhTnlbMdFmkxOqiKQ5A';
+
+        const { createClient } = supabase;
+        const results = document.getElementById('results');
+
+        function log(message) {
+            results.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            console.log(message);
+        }
+
+        async function testConnection(keyName, key) {
+            log(`\n🔧 Testing ${keyName}...`);
+            log(`Key: ${key.substring(0, 50)}...`);
+            
+            try {
+                const client = createClient(SUPABASE_URL, key);
+                log('✅ Client created successfully');
+                
+                // Test basic connection
+                const { data: healthData, error: healthError } = await client
+                    .from('bookings')
+                    .select('count', { count: 'exact', head: true });
+                
+                if (healthError) {
+                    log(`❌ Health check failed: ${healthError.message}`);
+                    log(`Details: ${JSON.stringify(healthError, null, 2)}`);
+                    return null;
+                }
+                
+                log(`✅ Health check passed. Total records: ${healthData ? 'Available' : 'Unknown'}`);
+                
+                // Test actual query
+                const { data, error } = await client
+                    .from('bookings')
+                    .select('id, customer_name, appointment_date, booking_status')
+                    .limit(3);
+                
+                if (error) {
+                    log(`❌ Query failed: ${error.message}`);
+                    log(`Details: ${JSON.stringify(error, null, 2)}`);
+                    return null;
+                }
+                
+                log(`✅ Query successful! Found ${data?.length || 0} bookings:`);
+                if (data && data.length > 0) {
+                    data.forEach((booking, i) => {
+                        log(`  ${i+1}. ${booking.customer_name} - ${booking.appointment_date} (${booking.booking_status})`);
+                    });
+                }
+                
+                return client;
+                
+            } catch (error) {
+                log(`❌ Exception: ${error.message}`);
+                log(`Stack: ${error.stack}`);
+                return null;
+            }
+        }
+
+        async function testPublicKey() {
+            results.textContent = '';
+            await testConnection('Public/Anon Key', PUBLIC_KEY);
+        }
+
+        async function testServiceKey() {
+            results.textContent = '';
+            await testConnection('Service Role Key 1', SERVICE_KEY_1);
+        }
+
+        async function testServiceKey2() {
+            results.textContent = '';
+            await testConnection('Service Role Key 2', SERVICE_KEY_2);
+        }
+
+        // Auto-run all tests on load
+        document.addEventListener('DOMContentLoaded', async function() {
+            log('🚀 Starting automatic tests...\n');
+            
+            await testConnection('Public/Anon Key', PUBLIC_KEY);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testConnection('Service Role Key 1', SERVICE_KEY_1);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testConnection('Service Role Key 2', SERVICE_KEY_2);
+            
+            log('\n✅ All tests completed!');
+        });
+    </script>
+</body>
+</html>

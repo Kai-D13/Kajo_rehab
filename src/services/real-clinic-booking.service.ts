@@ -3,7 +3,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { QRService } from './qr.service';
 import { AuthService } from './auth.service';
-import ZaloOANotificationService from './zalo-oa-notification.service';
+import { ZaloOAMessagingService } from './zalo-oa-enhanced.service';
+import { ZaloUserService } from './zalo-user.service';
 import toast from 'react-hot-toast';
 
 // Supabase config - Production ready với credentials thực tế
@@ -82,6 +83,9 @@ export class RealClinicBookingService {
       // Get current user (optional for bookings from other channels)
       const currentUser = AuthService.getCurrentUser();
       
+      // Get Zalo User ID for OA messaging
+      const zaloUserId = await ZaloUserService.getCurrentUserId();
+      
       // 1. Check time conflict với doctor_id
       const conflict = await this.checkTimeConflict(
         bookingData.appointment_date,
@@ -97,7 +101,7 @@ export class RealClinicBookingService {
       const bookingRecord = {
         customer_name: bookingData.customer_name,
         phone_number: bookingData.phone_number,
-        user_id: currentUser?.id,
+        user_id: zaloUserId || currentUser?.id, // Ưu tiên Zalo User ID
         appointment_date: bookingData.appointment_date,
         appointment_time: bookingData.appointment_time,
         symptoms: bookingData.symptoms,
@@ -137,8 +141,12 @@ export class RealClinicBookingService {
           .update({ qr_code_data: qrCodeData })
           .eq('id', data.id);
         
-        // 4. Send booking created notification
-        await ZaloOANotificationService.sendBookingConfirmation(data);
+        // 4. Send booking confirmation via Zalo OA (nếu có user_id)
+        if (data.user_id) {
+          await ZaloOAMessagingService.sendBookingConfirmation(data);
+        } else {
+          console.log('ℹ️ No Zalo User ID - skipping OA notification');
+        }
       }
 
       return {
