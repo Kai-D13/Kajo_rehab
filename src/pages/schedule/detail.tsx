@@ -1,9 +1,8 @@
 import DoctorItem from "@/components/items/doctor";
 import PolarizedList from "@/components/polarized-list";
-import { QRCodeDisplay } from "@/components/qr-code-display";
 import { bookingFormState } from "@/state";
 import { useSetAtom } from "jotai";
-import { useNavigate, useParams } from "zmp-ui";
+import { useNavigate, useParams, Page, Header, Box } from "zmp-ui";
 import { useState, useEffect } from "react";
 import NotFound from "../404";
 import { TestResult } from "./test-result";
@@ -180,32 +179,43 @@ function ScheduleDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div>Loading appointment details...</div>
-      </div>
+      <Page>
+        <Header showBackIcon title="Chi tiết lịch hẹn" />
+        <Box className="flex justify-center items-center h-64">
+          <div>Loading appointment details...</div>
+        </Box>
+      </Page>
     );
   }
 
   if (!schedule) {
-    return <NotFound />;
+    return (
+      <Page>
+        <Header showBackIcon title="Chi tiết lịch hẹn" />
+        <NotFound />
+      </Page>
+    );
   }
 
   return (
-    <FabForm
-      fab={{
-        children: "Tái khám",
-        onClick() {
-          setBookingData((prev) => ({
-            ...prev,
-            ...schedule,
-          }));
-          navigate("/booking", {
-            viewTransition: true,
-          });
-        },
-      }}
-    >
-      <div className="flex w-full flex-col px-4 py-3 space-y-3">
+    <Page>
+      <Header showBackIcon title="Chi tiết lịch hẹn" />
+      <Box>
+        <FabForm
+          fab={{
+            children: "Tái khám",
+            onClick() {
+              setBookingData((prev) => ({
+                ...prev,
+                ...schedule,
+              }));
+              navigate("/booking", {
+                viewTransition: true,
+              });
+            },
+          }}
+        >
+          <div className="flex w-full flex-col px-4 py-3 space-y-3">
         <div className="flex flex-col justify-center gap-3 rounded-xl bg-white p-4">
           <div className="flex items-center justify-between">
             <div className="text-base font-medium">{schedule.department.name}</div>
@@ -256,28 +266,28 @@ function ScheduleDetailPage() {
           />
         </div>
 
-        {/* QR Code Section - Only show for confirmed appointments */}
+        {/* Instructions Section - Replace QR Code with Phone Number Instructions */}
         {appointment && schedule.status === 'confirmed' && (
           <div className="flex flex-col justify-center gap-4 rounded-xl bg-white p-4">
-            <div className="font-medium text-center">Mã QR Check-in</div>
-            <QRCodeDisplay
-              appointment={{
-                id: appointment.id,
-                user_id: appointment.user_id || 'patient-dev-123',
-                appointment_date: appointment.appointment_date,
-                appointment_time: appointment.appointment_time,
-                status: appointment.status,
-                created_at: appointment.created_at || new Date().toISOString()
-              } as any}
-              size="medium"
-              showInfo={true}
-              allowDownload={true}
-              allowRegenerate={true}
-            />
+            <div className="font-medium text-center">Hướng dẫn check-in</div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">📞</div>
+              <div className="font-semibold text-blue-800 mb-2">Khi đến khám</div>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>🗣️ Đọc số điện thoại cho lễ tân</p>
+                <p>✅ Lễ tân sẽ check-in cho bạn</p>
+                <p>⏰ Có mặt trước 15 phút</p>
+              </div>
+              <div className="mt-3 p-2 bg-white rounded border text-lg font-mono">
+                {appointment.phone_number || 'Chưa có số điện thoại'}
+              </div>
+            </div>
           </div>
         )}
       </div>
-    </FabForm>
+        </FabForm>
+      </Box>
+    </Page>
   );
 }
 

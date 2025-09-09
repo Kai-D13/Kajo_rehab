@@ -7,6 +7,7 @@ import { useState } from "react";
 import { promptJSON, wait } from "@/utils/miscellaneous";
 import QuestionSentSuccessfully from "./success";
 import DepartmentPicker from "@/components/form/department-picker";
+import { Page, Header, Box } from "zmp-ui";
 import toast from "react-hot-toast";
 
 export default function AskPage() {
@@ -16,35 +17,43 @@ export default function AskPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (isSubmitted) {
-    return <QuestionSentSuccessfully />;
+    return (
+      <Page>
+        <Header showBackIcon title="Hỏi bác sĩ" />
+        <QuestionSentSuccessfully />
+      </Page>
+    );
   }
 
   return (
-    <FabForm
-      onSubmit={async () => {
-        await wait(1500);
-        setIsSubmitted(true);
-        promptJSON(formData);
-        resetFormData();
-      }}
-      fab={{
-        children: "Gửi câu hỏi",
-        disabled:
-          !formData.symptoms.length ||
-          !formData.description.trim().length ||
-          !formData.department,
-        onDisabledClick() {
-          toast.error("Vui lòng điền đầy đủ thông tin!");
-        },
-      }}
-    >
-      <SymptomInquiry
-        value={formData}
-        onChange={setFormData}
-        render={({ symptom, description }) => (
-          <>
-            <DepartmentPicker
-              label="Gửi đến khoa"
+    <Page>
+      <Header showBackIcon title="Hỏi bác sĩ" />
+      <Box>
+        <FabForm
+          onSubmit={async () => {
+            await wait(1500);
+            setIsSubmitted(true);
+            promptJSON(formData);
+            resetFormData();
+          }}
+          fab={{
+            children: "Gửi câu hỏi",
+            disabled:
+              !formData.symptoms.length ||
+              !formData.description.trim().length ||
+              !formData.department,
+            onDisabledClick() {
+              toast.error("Vui lòng điền đầy đủ thông tin!");
+            },
+          }}
+        >
+          <SymptomInquiry
+            value={formData}
+            onChange={setFormData}
+            render={({ symptom, description }) => (
+              <>
+                <DepartmentPicker
+                  label="Gửi đến khoa"
               placeholder="Chưa rõ"
               value={formData.department}
               onChange={(department) =>
@@ -57,5 +66,7 @@ export default function AskPage() {
         )}
       />
     </FabForm>
+      </Box>
+    </Page>
   );
 }

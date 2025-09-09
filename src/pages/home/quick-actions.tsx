@@ -70,3 +70,4 @@ const QuickActions = () => {
 };
 
 export default QuickActions;
+export { QuickActions };

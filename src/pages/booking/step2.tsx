@@ -12,6 +12,7 @@ export default function Step2() {
   const [formData, setFormData] = useAtom(bookingFormState);
   const [symptoms, setSymptoms] = useState<string[]>(formData.symptoms || []);
   const [description, setDescription] = useState<string>(formData.description || "");
+  const [phoneNumber, setPhoneNumber] = useState<string>(formData.phoneNumber || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const availableSymptoms = [
@@ -36,8 +37,15 @@ export default function Step2() {
   };
 
   const handleSubmit = async () => {
-    if (symptoms.length === 0 || !description.trim()) {
-      toast.error("Vui lòng chọn triệu chứng và mô tả chi tiết!");
+    if (symptoms.length === 0 || !description.trim() || !phoneNumber.trim()) {
+      toast.error("Vui lòng điền đầy đủ thông tin!");
+      return;
+    }
+
+    // Validate phone number
+    const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
+    if (!phoneRegex.test(phoneNumber.trim())) {
+      toast.error("Số điện thoại không hợp lệ!");
       return;
     }
 
@@ -60,7 +68,8 @@ export default function Step2() {
       setFormData(prev => ({
         ...prev,
         symptoms,
-        description
+        description,
+        phoneNumber: phoneNumber.trim()
       }));
 
       // Create appointment using Booking Service V2
@@ -73,7 +82,8 @@ export default function Step2() {
           ? formData.slot.date.toISOString().split('T')[0]
           : new Date().toISOString().split('T')[0],
         appointment_time: `${formData.slot.time.hour.toString().padStart(2, '0')}:${formData.slot.time.half ? '30' : '00'}`,
-        notes: `Triệu chứng: ${symptoms.join(', ')}. Mô tả: ${description}`
+        notes: `Triệu chứng: ${symptoms.join(', ')}. Mô tả: ${description}`,
+        phone_number: phoneNumber.trim()
       });
 
       if (result.success) {
@@ -120,6 +130,22 @@ export default function Step2() {
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div className="bg-blue-500 h-2 rounded-full w-2/3"></div>
           </div>
+        </div>
+
+        {/* Phone Number Input */}
+        <div className="bg-white rounded-lg p-4">
+          <Text.Title size="normal" className="mb-3">Số điện thoại liên hệ</Text.Title>
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="Nhập số điện thoại (VD: 0935680630)"
+            className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+            required
+          />
+          <Text size="xSmall" className="text-gray-500 mt-1">
+            📞 Số điện thoại để lễ tân check-in khi bạn đến khám
+          </Text>
         </div>
 
         {/* Symptoms Selection */}
@@ -174,7 +200,7 @@ export default function Step2() {
           size="large"
           fullWidth
           className="mt-6"
-          disabled={symptoms.length === 0 || !description.trim() || isSubmitting}
+          disabled={symptoms.length === 0 || !description.trim() || !phoneNumber.trim() || isSubmitting}
         >
           {isSubmitting ? "Đang đặt lịch..." : "Đặt lịch khám"}
         </Button>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'zmp-ui';
+import { useNavigate, Page, Header, Box } from 'zmp-ui';
 import { MedicalRecord, Patient } from '@/services/supabase';
-import { MockMedicalRecordService } from '@/services/mock-medical-record.service';
+import { MockDatabaseService } from '@/services/mock-database.service';
 import TransitionLink from '@/components/transition-link';
 import { formatFullDate } from '@/utils/format';
 
@@ -13,7 +13,9 @@ function MedicalRecordsPage() {
   useEffect(() => {
     const fetchRecords = async () => {
       try {
-        const userRecords = await MockMedicalRecordService.getPatientRecords('patient-dev-123');
+        const userRecords = MockDatabaseService.getMedicalRecords().filter(record => 
+          record.patient_id === 'patient-dev-123'
+        );
         setRecords(userRecords);
       } catch (error) {
         console.error('Error fetching medical records:', error);
@@ -27,44 +29,53 @@ function MedicalRecordsPage() {
 
   if (loading) {
     return (
-      <div className="px-4 py-3">
-        <div className="text-center">Loading medical records...</div>
-      </div>
+      <Page>
+        <Header showBackIcon title="Hồ sơ bệnh án" />
+        <Box className="px-4 py-3">
+          <div className="text-center">Loading medical records...</div>
+        </Box>
+      </Page>
     );
   }
 
   if (records.length === 0) {
     return (
-      <div className="px-4 py-3">
-        <div className="text-center text-gray-500">No medical records found</div>
-        <div className="text-center mt-4">
-          <button 
-            onClick={() => navigate('/medical-records/new')}
-            className="bg-primary text-white px-4 py-2 rounded-lg"
-          >
-            Tạo hồ sơ mới
-          </button>
-        </div>
-      </div>
+      <Page>
+        <Header showBackIcon title="Hồ sơ bệnh án" />
+        <Box className="px-4 py-3">
+          <div className="text-center text-gray-500">No medical records found</div>
+          <div className="text-center mt-4">
+            <button 
+              onClick={() => navigate('/medical-records/new')}
+              className="bg-primary text-white px-4 py-2 rounded-lg"
+            >
+              Tạo hồ sơ mới
+            </button>
+          </div>
+        </Box>
+      </Page>
     );
   }
 
   return (
-    <div className="px-4 py-3 space-y-3">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">Hồ sơ bệnh án</h1>
-        <button 
-          onClick={() => navigate('/medical-records/new')}
-          className="bg-primary text-white px-3 py-1 rounded text-sm"
-        >
-          Tạo mới
-        </button>
-      </div>
+    <Page>
+      <Header showBackIcon title="Hồ sơ bệnh án" />
+      <Box className="px-4 py-3 space-y-3">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-bold">Hồ sơ bệnh án</h1>
+          <button 
+            onClick={() => navigate('/medical-records/new')}
+            className="bg-primary text-white px-3 py-1 rounded text-sm"
+          >
+            Tạo mới
+          </button>
+        </div>
 
-      {records.map((record) => (
-        <MedicalRecordItem key={record.id} record={record} />
-      ))}
-    </div>
+        {records.map((record) => (
+          <MedicalRecordItem key={record.id} record={record} />
+        ))}
+      </Box>
+    </Page>
   );
 }
 

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kajo Rehab - Hệ thống lễ tân</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .reception-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .status-waiting { background: #fef3c7; color: #92400e; }
+        .status-confirmed { background: #d1fae5; color: #065f46; }
+        .status-completed { background: #dbeafe; color: #1e40af; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="reception-container">
+        <!-- Header -->
+        <div class="bg-white shadow-sm border-b">
+            <div class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">K</span>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900">Kajo Rehab</h1>
+                            <p class="text-sm text-gray-600">Hệ thống lễ tân</p>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <span id="currentDateTime"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Search Section -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">🔍 Tìm kiếm khách hàng</h2>
+                <div class="flex space-x-4">
+                    <div class="flex-1">
+                        <input 
+                            type="tel" 
+                            id="phoneSearch" 
+                            placeholder="Nhập số điện thoại khách hàng (VD: 0935680630)"
+                            class="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                            maxlength="11"
+                        >
+                    </div>
+                    <button 
+                        onclick="searchByPhone()" 
+                        class="btn-primary text-white px-6 py-3 rounded-lg font-medium"
+                    >
+                        Tìm kiếm
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">💡 Khách hàng chỉ cần đọc số điện thoại, lễ tân nhập vào để check-in</p>
+            </div>
+
+            <!-- Search Results -->
+            <div id="searchResults" class="hidden">
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Thông tin lịch hẹn</h3>
+                    <div id="searchResultsContent"></div>
+                </div>
+            </div>
+
+            <!-- Today's Appointments -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">📅 Lịch hẹn hôm nay</h3>
+                    <button onclick="loadTodayAppointments()" class="text-blue-600 hover:text-blue-800">
+                        🔄 Làm mới
+                    </button>
+                </div>
+                <div id="todayAppointments" class="space-y-3">
+                    <div class="text-center text-gray-500 py-8">
+                        <div class="text-4xl mb-2">⏳</div>
+                        <p>Đang tải danh sách lịch hẹn...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="totalToday">0</div>
+                    <div class="text-sm text-gray-600">Tổng hôm nay</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600" id="checkedIn">0</div>
+                    <div class="text-sm text-gray-600">Đã check-in</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-yellow-600" id="waiting">0</div>
+                    <div class="text-sm text-gray-600">Đang chờ</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600" id="completed">0</div>
+                    <div class="text-sm text-gray-600">Hoàn thành</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check-in Modal -->
+    <div id="checkinModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">✅ Xác nhận check-in</h3>
+            <div id="checkinDetails" class="space-y-2 text-sm text-gray-600 mb-6"></div>
+            <div class="flex space-x-3">
+                <button onclick="confirmCheckin()" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">
+                    Xác nhận check-in
+                </button>
+                <button onclick="closeCheckinModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400">
+                    Hủy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Supabase client
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js';
+
+        // Global variables
+        let currentBookingForCheckin = null;
+        let allAppointments = [];
+        let supabase = null;
+
+        // Initialize Supabase
+        const supabaseUrl = 'https://vekrhqotmgszgsredkud.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzcmVka3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5MzI1NTYsImV4cCI6MjA3MTUwODU1Nn0.KdUmhaSVPfWOEVgJ4C9Ybc0-IxO_Xs6mp8KUlYE_8cQ';
+        
+        try {
+            supabase = createClient(supabaseUrl, supabaseAnonKey);
+            console.log('✅ Supabase client initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase:', error);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            loadTodayAppointments();
+            
+            // Enter key on phone search
+            document.getElementById('phoneSearch').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchByPhone();
+                }
+            });
+        });
+
+        // Update current date time
+        function updateDateTime() {
+            const now = new Date();
+            const dateTimeString = now.toLocaleString('vi-VN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('currentDateTime').textContent = dateTimeString;
+        }
+
+        // Search by phone number
+        async function searchByPhone() {
+            const phone = document.getElementById('phoneSearch').value.trim();
+            
+            if (!phone) {
+                alert('Vui lòng nhập số điện thoại!');
+                return;
+            }
+
+            if (!/^(0|\+84)[0-9]{9,10}$/.test(phone)) {
+                alert('Số điện thoại không hợp lệ!');
+                return;
+            }
+
+            if (!supabase) {
+                alert('Lỗi kết nối database! Vui lòng reload trang.');
+                return;
+            }
+
+            try {
+                console.log('🔍 Searching bookings for phone:', phone);
+                
+                // Search in Supabase production database
+                const { data, error } = await supabase
+                    .from('bookings')
+                    .select('*')
+                    .eq('phone_number', phone)
+                    .order('appointment_date', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Supabase search error:', error);
+                    throw error;
+                }
+
+                console.log('✅ Found bookings:', data?.length || 0, data);
+
+                if (data && data.length > 0) {
+                    displaySearchResults(data);
+                } else {
+                    displayNoResults(phone);
+                }
+
+            } catch (error) {
+                console.error('❌ Search error:', error);
+                alert('Có lỗi xảy ra khi tìm kiếm. Vui lòng thử lại!');
+            }
+        }
+
+        // Display search results
+        function displaySearchResults(bookings) {
+            const resultsDiv = document.getElementById('searchResults');
+            const contentDiv = document.getElementById('searchResultsContent');
+            
+            let html = '';
+            
+            bookings.forEach(booking => {
+                const statusClass = `status-${booking.checkin_status === 'not_arrived' ? 'waiting' : booking.checkin_status}`;
+                const statusText = booking.checkin_status === 'not_arrived' ? 'Chưa check-in' : 
+                                 booking.checkin_status === 'checked_in' ? 'Đã check-in' : 
+                                 booking.checkin_status === 'completed' ? 'Hoàn thành' : booking.checkin_status;
+
+                // Format appointment date and time
+                const appointmentDate = new Date(booking.appointment_date);
+                const dateStr = appointmentDate.toLocaleDateString('vi-VN');
+                const timeStr = booking.appointment_time;
+
+                html += `
+                    <div class="border border-gray-200 rounded-lg p-4 mb-3">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span class="text-blue-600 font-semibold">${booking.customer_name.charAt(0)}</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">${booking.customer_name}</h4>
+                                    <p class="text-sm text-gray-600">📞 ${booking.phone_number}</p>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">
+                                ${statusText}
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+                            <div>📅 ${dateStr}</div>
+                            <div>⏰ ${timeStr}</div>
+                            <div>👨‍⚕️ Bác sĩ ID: ${booking.doctor_id}</div>
+                            <div>🩺 ${booking.service_type || 'Dịch vụ y tế'}</div>
+                        </div>
+
+                        ${booking.symptoms ? `<div class="text-sm text-gray-600 mb-3">🔸 Triệu chứng: ${booking.symptoms}</div>` : ''}
+                        
+                        ${booking.checkin_status === 'not_arrived' ? `
+                            <button 
+                                onclick="openCheckinModal('${booking.id}')" 
+                                class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium"
+                            >
+                                ✅ Check-in ngay
+                            </button>
+                        ` : `
+                            <div class="text-center text-green-600 font-medium">
+                                ✅ Đã check-in thành công
+                                ${booking.checkin_timestamp ? `<br><small>Thời gian: ${new Date(booking.checkin_timestamp).toLocaleString('vi-VN')}</small>` : ''}
+                            </div>
+                        `}
+                    </div>
+                `;
+            });
+            
+            contentDiv.innerHTML = html;
+            resultsDiv.classList.remove('hidden');
+        }
+
+        // Display no results
+        function displayNoResults(phone) {
+            const resultsDiv = document.getElementById('searchResults');
+            const contentDiv = document.getElementById('searchResultsContent');
+            
+            contentDiv.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="text-4xl mb-3">❌</div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy lịch hẹn</h4>
+                    <p class="text-gray-600 mb-4">Số điện thoại <strong>${phone}</strong> chưa có lịch hẹn nào.</p>
+                    <div class="text-sm text-gray-500">
+                        <p>💡 Vui lòng kiểm tra lại:</p>
+                        <p>• Số điện thoại có đúng không?</p>
+                        <p>• Khách hàng đã đặt lịch qua Zalo Mini App chưa?</p>
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.classList.remove('hidden');
+        }
+
+        // Open check-in modal
+        function openCheckinModal(bookingId) {
+            // Find booking data from current search results or all appointments
+            const booking = allAppointments.find(b => b.id === bookingId) || {
+                id: bookingId,
+                customer_name: 'Khách hàng',
+                phone_number: 'N/A',
+                appointment_date: 'N/A',
+                appointment_time: 'N/A',
+                doctor_id: 'N/A',
+                service_type: 'N/A'
+            };
+
+            currentBookingForCheckin = booking;
+            
+            const appointmentDate = booking.appointment_date !== 'N/A' ? 
+                new Date(booking.appointment_date).toLocaleDateString('vi-VN') : 'N/A';
+            
+            document.getElementById('checkinDetails').innerHTML = `
+                <div><strong>👤 Khách hàng:</strong> ${booking.customer_name}</div>
+                <div><strong>📞 Số điện thoại:</strong> ${booking.phone_number}</div>
+                <div><strong>📅 Ngày khám:</strong> ${appointmentDate}</div>
+                <div><strong>⏰ Giờ khám:</strong> ${booking.appointment_time}</div>
+                <div><strong>👨‍⚕️ Bác sĩ ID:</strong> ${booking.doctor_id}</div>
+                <div><strong>🩺 Dịch vụ:</strong> ${booking.service_type || 'Dịch vụ y tế'}</div>
+            `;
+            
+            document.getElementById('checkinModal').classList.remove('hidden');
+        }
+
+        // Close check-in modal
+        function closeCheckinModal() {
+            document.getElementById('checkinModal').classList.add('hidden');
+            currentBookingForCheckin = null;
+        }
+
+        // Confirm check-in
+        async function confirmCheckin() {
+            if (!currentBookingForCheckin || !supabase) return;
+            
+            try {
+                console.log('✅ Checking in booking:', currentBookingForCheckin.id);
+                
+                const checkinTime = new Date().toISOString();
+                
+                // Update in Supabase production database
+                const { data, error } = await supabase
+                    .from('bookings')
+                    .update({
+                        checkin_status: 'checked_in',
+                        checkin_timestamp: checkinTime,
+                        updated_at: checkinTime
+                    })
+                    .eq('id', currentBookingForCheckin.id)
+                    .select();
+
+                if (error) {
+                    console.error('❌ Supabase check-in error:', error);
+                    throw error;
+                }
+
+                if (data && data.length > 0) {
+                    console.log('✅ Check-in successful:', data[0]);
+                    alert(`✅ Check-in thành công cho ${currentBookingForCheckin.customer_name}!`);
+                } else {
+                    alert('❌ Không tìm thấy booking để check-in!');
+                }
+                
+                closeCheckinModal();
+                
+                // Refresh search results and today's appointments
+                const phoneInput = document.getElementById('phoneSearch');
+                if (phoneInput.value.trim()) {
+                    searchByPhone();
+                }
+                loadTodayAppointments();
+                
+            } catch (error) {
+                console.error('❌ Check-in error:', error);
+                alert('Có lỗi xảy ra khi check-in. Vui lòng thử lại!');
+            }
+        }
+
+        // Load today's appointments
+        async function loadTodayAppointments() {
+            if (!supabase) {
+                console.error('❌ Supabase not initialized');
+                return;
+            }
+
+            try {
+                const container = document.getElementById('todayAppointments');
+                const today = new Date().toISOString().split('T')[0];
+                
+                console.log('📅 Getting appointments for today:', today);
+
+                // Get today's appointments from Supabase
+                const { data, error } = await supabase
+                    .from('bookings')
+                    .select('*')
+                    .eq('appointment_date', today)
+                    .order('appointment_time', { ascending: true });
+
+                if (error) {
+                    console.error('❌ Supabase today appointments error:', error);
+                    throw error;
+                }
+
+                console.log('✅ Found today appointments:', data?.length || 0);
+                const todayAppointments = data || [];
+                allAppointments = todayAppointments;
+
+                if (todayAppointments.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <div class="text-4xl mb-2">📅</div>
+                            <p>Không có lịch hẹn nào hôm nay</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    todayAppointments.forEach(apt => {
+                        const statusClass = `status-${apt.checkin_status === 'not_arrived' ? 'waiting' : apt.checkin_status}`;
+                        const statusText = apt.checkin_status === 'not_arrived' ? 'Chưa đến' : 
+                                         apt.checkin_status === 'checked_in' ? 'Đã check-in' : 
+                                         apt.checkin_status === 'completed' ? 'Hoàn thành' : apt.checkin_status;
+
+                        html += `
+                            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm">
+                                        ${apt.customer_name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900">${apt.customer_name}</div>
+                                        <div class="text-sm text-gray-600">${apt.appointment_time} • ${apt.service_type || 'Dịch vụ y tế'}</div>
+                                    </div>
+                                </div>
+                                <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                                    ${statusText}
+                                </span>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                }
+
+                updateStatistics(todayAppointments);
+
+            } catch (error) {
+                console.error('❌ Error loading appointments:', error);
+                const container = document.getElementById('todayAppointments');
+                container.innerHTML = `
+                    <div class="text-center text-red-500 py-8">
+                        <div class="text-4xl mb-2">❌</div>
+                        <p>Lỗi khi tải danh sách lịch hẹn</p>
+                        <button onclick="loadTodayAppointments()" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg">
+                            Thử lại
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Update statistics
+        function updateStatistics(appointments) {
+            const total = appointments.length;
+            const checkedIn = appointments.filter(a => a.checkin_status === 'checked_in').length;
+            const waiting = appointments.filter(a => a.checkin_status === 'not_arrived').length;
+            const completed = appointments.filter(a => a.checkin_status === 'completed').length;
+
+            document.getElementById('totalToday').textContent = total;
+            document.getElementById('checkedIn').textContent = checkedIn;
+            document.getElementById('waiting').textContent = waiting;
+            document.getElementById('completed').textContent = completed;
+        }
+        // Make functions global
+        window.searchByPhone = searchByPhone;
+        window.openCheckinModal = openCheckinModal;
+        window.closeCheckinModal = closeCheckinModal;
+        window.confirmCheckin = confirmCheckin;
+        window.loadTodayAppointments = loadTodayAppointments;
+    </script>
+</body>
+</html>

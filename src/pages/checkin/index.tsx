@@ -1,98 +1,70 @@
-// QR Static Check-in Page - Khách hàng quét QR tĩnh của phòng khám
+// QR Static Check-in Page - Luồng mới theo yêu cầu
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Page, Header, Text, Modal, List } from 'zmp-ui';
-import { realClinicBookingService, BookingRecord, CheckinStatus } from '@/services/real-clinic-booking.service';
-import { AuthService } from '@/services/auth.service';
-import { getPhoneNumber } from 'zmp-sdk/apis';
+import { Box, Button, Page, Header, Text, Spinner } from 'zmp-ui';
+import { staticCheckInService } from '@/services/static-checkin.service';
 import toast from 'react-hot-toast';
 
-export const QRStaticCheckIn: React.FC = () => {
-  const [userBookings, setUserBookings] = useState<BookingRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [showBookings, setShowBookings] = useState(false);
+interface CheckInState {
+  loading: boolean;
+  success: boolean;
+  message: string;
+  booking: any;
+}
 
+export const QRStaticCheckIn: React.FC = () => {
+  const [state, setState] = useState<CheckInState>({
+    loading: true,
+    success: false,
+    message: '',
+    booking: null
+  });
+
+  // Auto check-in when page loads (theo luồng mới)
   useEffect(() => {
-    // Auto-load user bookings if authenticated
-    loadUserBookings();
+    handleAutoCheckIn();
   }, []);
 
-  const loadUserBookings = async () => {
-    setLoading(true);
+  const handleAutoCheckIn = async () => {
+    setState(prev => ({ ...prev, loading: true }));
+    
     try {
-      const currentUser = AuthService.getCurrentUser();
+      console.log('🎯 Starting auto check-in process...');
+      const result = await staticCheckInService.handleCustomerCheckIn();
       
-      if (currentUser) {
-        // Load by user ID
-        const bookings = await realClinicBookingService.getUserBookings();
-        const confirmedBookings = bookings.filter(b => 
-          b.booking_status === 'confirmed' && 
-          b.checkin_status === CheckinStatus.NOT_ARRIVED &&
-          new Date(b.appointment_date) >= new Date(new Date().toISOString().split('T')[0])
-        );
-        setUserBookings(confirmedBookings);
-        
-        if (confirmedBookings.length > 0) {
-          setShowBookings(true);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user bookings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setState({
+        loading: false,
+        success: result.success,
+        message: result.message,
+        booking: result.booking || null
+      });
 
-  const loadBookingsByPhone = async () => {
-    if (!phoneNumber) {
-      toast.error('Vui lòng nhập số điện thoại');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const bookings = await realClinicBookingService.getUserBookings(phoneNumber);
-      const confirmedBookings = bookings.filter(b => 
-        b.booking_status === 'confirmed' && 
-        b.checkin_status === CheckinStatus.NOT_ARRIVED &&
-        new Date(b.appointment_date) >= new Date(new Date().toISOString().split('T')[0])
-      );
-      
-      setUserBookings(confirmedBookings);
-      setShowBookings(true);
-      
-      if (confirmedBookings.length === 0) {
-        toast.error('Không tìm thấy lịch hẹn nào cần check-in');
-      }
-    } catch (error) {
-      console.error('Error loading bookings by phone:', error);
-      toast.error('Lỗi khi tìm lịch hẹn');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCheckIn = async (bookingId: string) => {
-    try {
-      const result = await realClinicBookingService.checkInBooking(bookingId);
-      
       if (result.success) {
-        toast.success('Check-in thành công! Vui lòng chờ trong phòng khám.');
-        loadUserBookings(); // Refresh data
+        toast.success('Check-in thành công!');
       } else {
         toast.error(result.message);
       }
+
     } catch (error) {
-      console.error('Check-in error:', error);
-      toast.error('Lỗi khi check-in');
+      console.error('❌ Check-in error:', error);
+      setState({
+        loading: false,
+        success: false,
+        message: 'Có lỗi xảy ra trong quá trình check-in.',
+        booking: null
+      });
+      toast.error('Lỗi check-in');
     }
+  };
+
+  const handleRetryCheckIn = () => {
+    handleAutoCheckIn();
   };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('vi-VN', {
       weekday: 'long',
-      year: 'numeric',
+      year: 'numeric', 
       month: 'long',
       day: 'numeric'
     });
@@ -102,128 +74,146 @@ export const QRStaticCheckIn: React.FC = () => {
     return timeStr.substring(0, 5);
   };
 
-  return (
-    <Page>
-      <Header title="Check-in Lịch Hẹn" />
-      
-      <Box className="p-4 space-y-6">
-        {/* Welcome Message */}
-        <Box className="bg-blue-50 p-4 rounded-lg">
-          <Text.Title className="text-blue-800 mb-2">
-            Chào mừng đến KajoTai Rehab Clinic! 👋
-          </Text.Title>
-          <Text className="text-blue-600">
-            Vui lòng check-in để xác nhận bạn đã có mặt tại phòng khám.
+  if (state.loading) {
+    return (
+      <Page>
+        <Header title="Đang Check-in..." />
+        <Box className="flex flex-col items-center justify-center min-h-screen p-6">
+          <Spinner />
+          <Text className="mt-4 text-center text-lg">
+            Đang xử lý check-in tự động...
+          </Text>
+          <Text className="mt-2 text-center text-sm text-gray-600">
+            Vui lòng đợi trong giây lát
           </Text>
         </Box>
+      </Page>
+    );
+  }
 
-        {/* Auto-loaded bookings or Phone input */}
-        {!showBookings ? (
-          <Box className="space-y-4">
-            <Text.Header>
-              Nhập số điện thoại để tìm lịch hẹn:
-            </Text.Header>
-            
-            <Box className="space-y-3">
-              <input
-                type="tel"
-                placeholder="Số điện thoại (VD: 0901234567)"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg"
-              />
-              
-              <Button
-                type="highlight"
-                size="large"
-                onClick={loadBookingsByPhone}
-                loading={loading}
-                className="w-full"
-              >
-                Tìm lịch hẹn
-              </Button>
-            </Box>
+  return (
+    <Page>
+      <Header title="Kết Quả Check-in" />
+      
+      <Box className="p-6 space-y-6">
+        
+        {/* Check-in Status Card */}
+        <Box className={`p-6 rounded-xl text-center ${
+          state.success 
+            ? 'bg-green-50 border-2 border-green-200' 
+            : 'bg-red-50 border-2 border-red-200'
+        }`}>
+          
+          {/* Status Icon */}
+          <Box className={`text-6xl mb-4 ${
+            state.success ? 'text-green-500' : 'text-red-500'
+          }`}>
+            {state.success ? '✅' : '❌'}
           </Box>
-        ) : (
-          <Box className="space-y-4">
-            <Text.Header>
-              Lịch hẹn của bạn ({userBookings.length})
-            </Text.Header>
 
-            {userBookings.length > 0 ? (
-              <List>
-                {userBookings.map((booking) => (
-                  <List.Item
-                    key={booking.id}
-                    title={`${formatDate(booking.appointment_date)}`}
-                    subTitle={`${formatTime(booking.appointment_time)} - ${booking.customer_name}`}
-                    suffix={
-                      <Button
-                        type="highlight"
-                        size="small"
-                        onClick={() => handleCheckIn(booking.id)}
-                      >
-                        Check-in
-                      </Button>
-                    }
-                  />
-                ))}
-              </List>
-            ) : (
-              <Box className="text-center py-8">
-                <Text className="text-gray-500">
-                  Không tìm thấy lịch hẹn nào cần check-in
-                </Text>
-                <Button
-                  type="neutral"
-                  size="medium"
-                  className="mt-3"
-                  onClick={() => {
-                    setShowBookings(false);
-                    setPhoneNumber('');
-                  }}
-                >
-                  Thử số điện thoại khác
-                </Button>
+          {/* Status Title */}
+          <Text.Title className={`text-xl font-bold mb-3 ${
+            state.success ? 'text-green-800' : 'text-red-800'
+          }`}>
+            {state.success ? 'Check-in Thành Công!' : 'Check-in Không Thành Công'}
+          </Text.Title>
+
+          {/* Status Message */}
+          <Text className={`text-sm mb-4 ${
+            state.success ? 'text-green-700' : 'text-red-700'
+          }`}>
+            {state.message}
+          </Text>
+
+          {/* Booking Details (if successful) */}
+          {state.success && state.booking && (
+            <Box className="bg-white p-4 rounded-lg border border-green-300 text-left mt-4">
+              <Text className="font-semibold text-green-800 mb-3">📋 Chi tiết lịch hẹn:</Text>
+              <Box className="space-y-2 text-sm">
+                <Box className="flex justify-between">
+                  <Text className="text-gray-600">Tên khách hàng:</Text>
+                  <Text className="font-medium">{state.booking.customer_name}</Text>
+                </Box>
+                <Box className="flex justify-between">
+                  <Text className="text-gray-600">Thời gian:</Text>
+                  <Text className="font-medium">{formatTime(state.booking.appointment_time)}</Text>
+                </Box>
+                <Box className="flex justify-between">
+                  <Text className="text-gray-600">Ngày hẹn:</Text>
+                  <Text className="font-medium">{formatDate(state.booking.appointment_date)}</Text>
+                </Box>
+                <Box className="flex justify-between">
+                  <Text className="text-gray-600">Dịch vụ:</Text>
+                  <Text className="font-medium">{state.booking.service_type || 'Vật lý trị liệu'}</Text>
+                </Box>
+                <Box className="flex justify-between">
+                  <Text className="text-gray-600">Check-in lúc:</Text>
+                  <Text className="font-medium text-green-600">
+                    {new Date(state.booking.checkin_timestamp).toLocaleTimeString('vi-VN')}
+                  </Text>
+                </Box>
               </Box>
-            )}
+            </Box>
+          )}
+        </Box>
 
-            {userBookings.length > 0 && (
-              <Button
-                type="neutral"
-                size="medium"
-                className="w-full mt-4"
-                onClick={() => {
-                  setShowBookings(false);
-                  setPhoneNumber('');
-                }}
-              >
-                Tìm bằng số điện thoại khác
-              </Button>
-            )}
-          </Box>
-        )}
+        {/* Action Buttons */}
+        <Box className="space-y-3">
+          {!state.success && (
+            <Button
+              type="highlight"
+              size="large"
+              onClick={handleRetryCheckIn}
+              className="w-full"
+            >
+              🔄 Thử lại Check-in
+            </Button>
+          )}
 
-        {/* Instructions */}
-        <Box className="bg-gray-50 p-4 rounded-lg">
-          <Text.Header className="text-gray-700 mb-2">
-            Hướng dẫn:
-          </Text.Header>
-          <Box className="space-y-2">
-            <Text className="text-sm text-gray-600">
-              • Quét mã QR tĩnh tại quầy lễ tân để vào trang này
-            </Text>
-            <Text className="text-sm text-gray-600">
-              • Nhập số điện thoại đã đăng ký lịch hẹn
-            </Text>
-            <Text className="text-sm text-gray-600">
-              • Nhấn "Check-in" để xác nhận đã có mặt
-            </Text>
-            <Text className="text-sm text-gray-600">
-              • Chờ hướng dẫn từ nhân viên y tế
-            </Text>
+          <Button
+            type="neutral"
+            size="large"
+            onClick={() => window.location.href = '/schedule'}
+            className="w-full"
+          >
+            📋 Xem lịch hẹn của tôi
+          </Button>
+
+          <Button
+            type="neutral"
+            size="large" 
+            onClick={() => window.location.href = '/'}
+            className="w-full"
+          >
+            🏠 Về trang chủ
+          </Button>
+        </Box>
+
+        {/* New Workflow Instructions */}
+        <Box className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <Text className="text-blue-800 font-semibold mb-2">
+            📱 Luồng quy trình mới:
+          </Text>
+          <Box className="space-y-1 text-xs text-blue-700">
+            <Text>✅ 1. Đặt lịch qua Zalo Mini App</Text>
+            <Text>✅ 2. Nhận thông báo xác nhận qua Zalo OA</Text>
+            <Text>✅ 3. Đến phòng khám → Scan QR tĩnh tại quầy lễ tân</Text>
+            <Text>✅ 4. Hệ thống tự động check-in</Text>
+            <Text>✅ 5. Chờ gọi tên để vào phòng khám</Text>
           </Box>
         </Box>
+
+        {/* Contact Information */}
+        {!state.success && (
+          <Box className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <Text className="text-yellow-800 font-semibold mb-2">
+              🆘 Cần hỗ trợ?
+            </Text>
+            <Text className="text-xs text-yellow-700">
+              Nếu gặp khó khăn, vui lòng liên hệ lễ tân để được hỗ trợ check-in thủ công.
+            </Text>
+          </Box>
+        )}
       </Box>
     </Page>
   );

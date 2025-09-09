@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'zmp-ui';
 import { MedicalRecord, Patient, TreatmentType, ICDCode } from '@/services/supabase';
-import { MockMedicalRecordService } from '@/services/mock-medical-record.service';
 import { MockDatabaseService } from '@/services/mock-database.service';
 import FabForm from '@/components/form/fab-form';
 import toast from 'react-hot-toast';
@@ -103,7 +102,13 @@ function NewMedicalRecordPage() {
         status: 'active'
       };
 
-      const medicalRecord = await MockMedicalRecordService.createMedicalRecord(recordData);
+      const medicalRecord = {
+        id: Date.now().toString(),
+        patient_id: 'patient-dev-123',
+        ...recordData,
+        created_at: new Date().toISOString()
+      };
+      console.log('Created medical record:', medicalRecord);
 
       toast.success("Tạo hồ sơ bệnh án thành công!", { id: "medical-record" });
       console.log("✅ Medical record created:", medicalRecord);

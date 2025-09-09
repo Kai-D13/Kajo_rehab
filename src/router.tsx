@@ -26,9 +26,7 @@ import MedicalRecordsPage from "./pages/medical-records";
 import MedicalRecordDetailPage from "./pages/medical-records/detail";
 import NewMedicalRecordPage from "./pages/medical-records/new";
 import AdminDashboard from "./pages/admin";
-import QRTestPage from "./pages/qr-test";
 import QRStaticCheckIn from "./pages/checkin";
-import DebugAppointmentsPage from "./pages/debug-appointments";
 import TestBookingPage from "./pages/test/supabase-booking-test-clean";
 import BookingDebugPage from "./pages/test/supabase-booking-debug";
 import SimpleTestPage from "./pages/test/simple-test";
@@ -149,16 +147,8 @@ export const routes = [
         element: <AdminDashboard />,
       },
       {
-        path: "/qr-test",
-        element: <QRTestPage />,
-      },
-      {
         path: "/checkin",
         element: <QRStaticCheckIn />,
-      },
-      {
-        path: "/debug-appointments",
-        element: <DebugAppointmentsPage />,
       },
     ],
   },

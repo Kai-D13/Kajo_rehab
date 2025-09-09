@@ -213,10 +213,12 @@ export const bookingFormState = atomWithReset<{
   department?: Department;
   symptoms: string[];
   description: string;
+  phoneNumber: string;
   images: string[];
 }>({
   symptoms: [],
   description: "",
+  phoneNumber: "",
   images: [] as string[],
 });
 

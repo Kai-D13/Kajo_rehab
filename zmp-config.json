@@ -1,0 +1,63 @@
+{
+  "appId": "2403652688841115720",
+  "appName": "KajoTai Rehab Clinic",
+  "version": "1.0.0",
+  "description": "Hệ thống đặt lịch khám tại phòng khám phục hồi chức năng KajoTai",
+  "category": "Y tế & Dược phẩm",
+  "developer": {
+    "name": "KajoTai Clinic",
+    "email": "contact@kajotai.com",
+    "website": "https://kajorehab.gt.tc"
+  },
+  "permissions": [
+    "scope.userInfo",
+    "scope.userPhonenumber", 
+    "scope.userLocation"
+  ],
+  "api": {
+    "baseUrl": "https://kajorehab.gt.tc/api",
+    "timeout": 30000,
+    "endpoints": {
+      "booking": "/bookings",
+      "user": "/users",
+      "checkin": "/checkin"
+    }
+  },
+  "zalo": {
+    "oaId": "2339827548685253412",
+    "appSecret": "NzM0OTU2ZTJiYjU4NGVkYTU3YzE",
+    "webhookUrl": "https://kajorehab.gt.tc/api/webhook/zalo"
+  },
+  "database": {
+    "provider": "supabase",
+    "url": "https://vekrhqotmgszgsredkud.supabase.co",
+    "tables": ["bookings", "users", "checkin_history"]
+  },
+  "build": {
+    "outputDir": "dist",
+    "minify": true,
+    "sourcemap": false,
+    "target": "production"
+  },
+  "deploy": {
+    "environment": "production",
+    "autoUpload": true,
+    "domain": "kajorehab.gt.tc"
+  },
+  "testing": {
+    "realUser": {
+      "userId": "277047792803717156",
+      "name": "Hoàng Vũ",
+      "phone": "0935680630"
+    },
+    "testMode": true,
+    "mockData": false
+  },
+  "features": {
+    "booking": true,
+    "checkin": true,
+    "oaMessaging": true,
+    "qrCode": true,
+    "userProfile": true
+  }
+}

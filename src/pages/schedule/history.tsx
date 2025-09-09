@@ -5,11 +5,12 @@ import { SyncService } from '@/services/sync.service';
 import { Appointment } from '@/services/supabase.config';
 import { Booking, Doctor } from '@/types';
 import { AuthService } from '@/services/auth.service';
+import { Page, Header } from "zmp-ui";
 
 // Cache for bookings to prevent remount issues
 let bookingsCache: Booking[] = [];
 let lastFetchTime = 0;
-const CACHE_DURATION = 5000; // 5 seconds
+const CACHE_DURATION = 2000; // 🔧 Reduced to 2 seconds for faster updates
 
 // Helper function to convert Appointment to Booking format
 const convertAppointmentToBooking = async (appointment: any): Promise<Booking | null> => {
@@ -78,7 +79,9 @@ const convertAppointmentToBooking = async (appointment: any): Promise<Booking | 
         shortDescription: specialtiesStr,
         description: `Department of ${specialtiesStr}`,
         groupId: 1
-      }
+      },
+      // 🔧 Add raw appointment data for enhanced display
+      ...(appointment as any)
     };
 
     console.log('Converted booking:', booking);
@@ -99,13 +102,17 @@ function ScheduleHistoryPage() {
     const fetchAppointments = async () => {
       if (!isMounted) return;
       
-      // Check cache first
+      // Check cache first  
       const now = Date.now();
       if (bookingsCache.length > 0 && (now - lastFetchTime) < CACHE_DURATION) {
+        console.log('📋 Using cached bookings data');
         setBookings(bookingsCache);
         setLoading(false);
         return;
       }
+      
+      // 🔧 Clear cache for fresh data fetch
+      bookingsCache = [];
       
       try {
         // Get current authenticated user
@@ -123,7 +130,9 @@ function ScheduleHistoryPage() {
         try {
           // Use production booking service
           const { realClinicBookingService } = await import('../../services/real-clinic-booking.service');
-          const productionBookings = await realClinicBookingService.getUserBookings(currentUser.id);
+          const productionBookings = await realClinicBookingService.getUserBookings(); // 🔧 Remove currentUser.id parameter
+          
+          console.log('🔍 Raw production bookings result:', productionBookings);
           
           if (productionBookings && productionBookings.length > 0) {
             console.log('📋 Found production bookings:', productionBookings.length);
@@ -202,6 +211,7 @@ function ScheduleHistoryPage() {
     const handleAppointmentsUpdated = () => {
       console.log('🔄 Appointments updated from sync - refreshing...');
       bookingsCache = []; // Clear cache to force refresh
+      lastFetchTime = 0; // Reset fetch time
       fetchAppointments();
     };
 
@@ -213,7 +223,19 @@ function ScheduleHistoryPage() {
       isMounted = false;
       window.removeEventListener('appointmentsUpdated', handleAppointmentsUpdated);
     };
-  }, []);  if (loading) {
+  }, []);
+  
+  // 🔧 Manual refresh function for testing
+  const refreshBookings = () => {
+    console.log('🔄 Manual refresh triggered');
+    bookingsCache = [];
+    lastFetchTime = 0;
+    setLoading(true);
+    // Re-trigger the effect by clearing cache
+    window.dispatchEvent(new Event('appointmentsUpdated'));
+  };
+
+  if (loading) {
     return (
       <div className="px-4 py-3">
         <div className="text-center">Loading appointments...</div>
@@ -224,17 +246,38 @@ function ScheduleHistoryPage() {
   if (bookings.length === 0) {
     return (
       <div className="px-4 py-3">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Lịch hẹn của tôi</h2>
+          <button
+            onClick={refreshBookings}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+          >
+            🔄 Làm mới
+          </button>
+        </div>
         <div className="text-center text-gray-500">No appointments found</div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-3 space-y-3">
-      {bookings.map((booking, index) => (
-        <ScheduleItem key={booking.id || index} schedule={booking} />
-      ))}
-    </div>
+    <Page className="bg-gray-100">
+      <Header title="Lịch hẹn của tôi" showBackIcon />
+      <div className="px-4 py-3 space-y-3">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Lịch hẹn của tôi ({bookings.length})</h2>
+          <button
+            onClick={refreshBookings}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+          >
+            🔄 Làm mới
+          </button>
+        </div>
+        {bookings.map((booking, index) => (
+          <ScheduleItem key={booking.id || index} schedule={booking} />
+        ))}
+      </div>
+    </Page>
   );
 }
 

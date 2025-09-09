@@ -1,47 +1,38 @@
-import { useEffect, useState } from "react";
-import Tabs from "@/components/tabs";
-import Tab1 from "./tab1";
-import Tab2 from "./tab2";
-import Tab3 from "./tab3";
+import { createContext, useState } from "react";
+import { Box, Header, Page, Tabs } from "zmp-ui";
 import { DetailPageContext, DetailPageTemplateProps } from "./context";
-import { useAtom } from "jotai";
-import { customTitleState } from "@/state";
 
 function DetailPageTemplate(props: DetailPageTemplateProps) {
-  // Get URL search params
-  const queryParams = new URLSearchParams(window.location.search);
-  const tab = queryParams.get("tab");
-  const [activeTab, setActiveTab] = useState(Number(tab) || 0);
-  const [customTitle, setCustomTitle] = useAtom(customTitleState);
-
-  useEffect(() => {
-    const oldTitle = customTitle;
-    setCustomTitle(props.title);
-    return () => {
-      setCustomTitle(oldTitle);
-    };
-  }, []);
+  const [activeTab, setActiveTab] = useState<string>("0");
 
   return (
     <DetailPageContext.Provider value={props}>
-      <Tabs
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        tabs={[
-          {
-            name: "Giới thiệu",
-            content: Tab1,
-          },
-          {
-            name: "Bác sĩ",
-            content: Tab2,
-          },
-          {
-            name: "Tư vấn",
-            content: Tab3,
-          },
-        ]}
-      />
+      <Page className="bg-background" hideScrollbar>
+        <Header showBackIcon title={props.title} />
+        <Box className="bg-background">
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            className="sticky top-0 z-20 bg-background"
+          >
+            <Tabs.Tab key="0" label="Mô tả">
+              <Box className="p-4">
+                <div
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{
+                    __html: props.tab1.htmlContent,
+                  }}
+                />
+              </Box>
+            </Tabs.Tab>
+            <Tabs.Tab key="1" label="Đặt lịch">
+              <Box className="p-4">
+                {props.tab2?.bookingComponent || <div>Booking form not available</div>}
+              </Box>
+            </Tabs.Tab>
+          </Tabs>
+        </Box>
+      </Page>
     </DetailPageContext.Provider>
   );
 }

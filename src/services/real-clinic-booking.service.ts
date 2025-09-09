@@ -1,10 +1,10 @@
 // Real Clinic Enhanced Booking Service 
 // Implementation theo use case thực tế của phòng khám
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabaseClient';
 import { QRService } from './qr.service';
 import { AuthService } from './auth.service';
-import { ZaloOAMessagingService } from './zalo-oa-enhanced.service';
-import { ZaloUserService } from './zalo-user.service';
+import { zaloOAService } from './zalo-oa.service';
 import toast from 'react-hot-toast';
 
 // Supabase config - Production ready với credentials thực tế
@@ -60,14 +60,19 @@ export interface BookingRecord {
   qr_code_data?: string;
   doctor_id?: string;
   service_id?: string;
+  service_type?: string; // Added for invoice
+  clinic_location?: string; // Added for invoice
   created_via: string;
+  created_at?: string; // Added for invoice
+  confirmed_by?: string;
+  confirmed_at?: string;
 }
 
 export class RealClinicBookingService {
   private supabase: SupabaseClient;
   
   constructor() {
-    this.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    this.supabase = supabase;
     console.log('🏥 Real Clinic Booking Service initialized');
   }
 
@@ -84,20 +89,24 @@ export class RealClinicBookingService {
       const currentUser = AuthService.getCurrentUser();
       
       // Get Zalo User ID for OA messaging
-      const zaloUserId = await ZaloUserService.getCurrentUserId();
+      const zaloUserId = AuthService.getCurrentUser()?.id || 'unknown';
       
-      // 1. Check time conflict với doctor_id
-      const conflict = await this.checkTimeConflict(
+      // 1. Check capacity control theo luồng mới (Max 3 per time slot)
+      const capacityCheck = await this.checkCapacityAndConflict(
         bookingData.appointment_date,
         bookingData.appointment_time,
         bookingData.doctor_id
       );
       
-      if (conflict) {
-        throw new Error('Thời gian này đã có lịch hẹn khác. Vui lòng chọn thời gian khác!');
+      if (!capacityCheck.canBook) {
+        // Return error message cho frontend hiển thị
+        toast.error(capacityCheck.message);
+        throw new Error(capacityCheck.message);
       }
 
-      // 2. Create booking record với trạng thái PENDING
+      console.log(`✅ Capacity check passed: ${capacityCheck.currentCount + 1}/${capacityCheck.maxCapacity} after booking`);
+
+      // 2. Create booking record với auto-confirmed status theo luồng mới
       const bookingRecord = {
         customer_name: bookingData.customer_name,
         phone_number: bookingData.phone_number,
@@ -108,11 +117,13 @@ export class RealClinicBookingService {
         detailed_description: bookingData.detailed_description,
         image_urls: bookingData.image_urls || [],
         video_urls: bookingData.video_urls || [],
-        booking_status: BookingStatus.PENDING, // Chờ xác nhận theo use case
+        booking_status: BookingStatus.CONFIRMED, // 🔧 Auto-confirm để cải thiện UX
         checkin_status: CheckinStatus.NOT_ARRIVED,
         doctor_id: bookingData.doctor_id,
         service_id: bookingData.service_id,
-        created_via: 'zalo_miniapp'
+        created_via: 'zalo_miniapp',
+        confirmed_by: 'system_auto', // Đánh dấu auto-confirm
+        confirmed_at: new Date().toISOString() // Thời gian auto-confirm
       };
 
       const { data, error } = await this.supabase
@@ -123,30 +134,15 @@ export class RealClinicBookingService {
 
       if (error) throw error;
 
-      console.log('✅ Booking created successfully with pending status:', data.id);
-      toast.success('Đặt lịch thành công! Đang chờ xác nhận từ phòng khám.');
+      console.log('✅ Booking auto-confirmed successfully:', data.id);
+      toast.success('Đặt lịch thành công! Lịch hẹn đã được xác nhận tự động.');
 
-      // 3. Generate QR code for future check-in
-      if (data) {
-        const qrCodeData = await QRService.generateQRText({
-          id: data.id,
-          user_id: data.user_id || data.phone_number,
-          appointment_date: data.appointment_date,
-          appointment_time: data.appointment_time
-        } as any);
-
-        // Update booking with QR code data
-        await this.supabase
-          .from('bookings')
-          .update({ qr_code_data: qrCodeData })
-          .eq('id', data.id);
-        
-        // 4. Send booking confirmation via Zalo OA (nếu có user_id)
-        if (data.user_id) {
-          await ZaloOAMessagingService.sendBookingConfirmation(data);
-        } else {
-          console.log('ℹ️ No Zalo User ID - skipping OA notification');
-        }
+      // 3. Send booking confirmation via Zalo OA theo luồng mới (không cần QR code động)
+      if (data && data.user_id) {
+        console.log('📨 Sending detailed booking info to customer via Zalo OA...');
+        await zaloOAService.sendBookingConfirmation(data);
+      } else {
+        console.log('ℹ️ No Zalo User ID - skipping OA notification');
       }
 
       return {
@@ -180,14 +176,19 @@ export class RealClinicBookingService {
     }
   }
 
-  // 2. Check time conflict - ENABLED for all modes to prevent database constraint violations
-  async checkTimeConflict(date: string, time: string, doctorId?: string): Promise<boolean> {
+  // 2. Check capacity control - ENHANCED for new workflow (Max 3 per time slot)
+  async checkCapacityAndConflict(date: string, time: string, doctorId?: string): Promise<{
+    canBook: boolean;
+    currentCount: number;
+    maxCapacity: number;
+    message: string;
+  }> {
     try {
-      console.log(`� Checking time conflict for ${date} ${time} (doctor: ${doctorId || 'any'})`);
+      console.log(`🎯 Checking capacity for ${date} ${time} (doctor: ${doctorId || 'any'})`);
       
       let query = this.supabase
         .from('bookings')
-        .select('id, customer_name, doctor_id')
+        .select('id, customer_name, doctor_id, user_id')
         .eq('appointment_date', date)
         .eq('appointment_time', time)
         .in('booking_status', ['pending', 'confirmed']);
@@ -200,22 +201,32 @@ export class RealClinicBookingService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('❌ Error checking time conflict:', error);
-        throw error; // Fail safely to prevent constraint violation
+        console.error('❌ Error checking capacity:', error);
+        throw error;
       }
       
-      const hasConflict = data && data.length > 0;
+      const currentCount = data ? data.length : 0;
+      const maxCapacity = 3; // Max 3 customers per time slot
+      const canBook = currentCount < maxCapacity;
       
-      if (hasConflict) {
-        console.log(`⚠️ TIME CONFLICT DETECTED:`, data);
+      let message = '';
+      if (!canBook) {
+        message = 'Khung giờ đặt lịch của bạn đã kín, vui lòng chọn khung thời gian khác, Kajo xin cảm ơn';
+        console.log(`⚠️ CAPACITY FULL: ${currentCount}/${maxCapacity} bookings at ${date} ${time}`);
       } else {
-        console.log('✅ No time conflicts found');
+        message = `Còn ${maxCapacity - currentCount}/${maxCapacity} slot available`;
+        console.log(`✅ Capacity available: ${currentCount}/${maxCapacity} bookings`);
       }
       
-      return hasConflict;
+      return {
+        canBook,
+        currentCount,
+        maxCapacity,
+        message
+      };
     } catch (error) {
-      console.error('❌ Time conflict check failed:', error);
-      throw error; // Fail safely
+      console.error('❌ Capacity check failed:', error);
+      throw error;
     }
   }
 
@@ -251,28 +262,72 @@ export class RealClinicBookingService {
     }
   }
 
+  // Get bookings by specific date (for admin dashboard)
+  async getBookingsByDate(date: string): Promise<BookingRecord[]> {
+    try {
+      console.log(`📅 Fetching bookings for date: ${date}`);
+      
+      const { data, error } = await this.supabase
+        .from('bookings')
+        .select('*')
+        .eq('appointment_date', date)
+        .order('appointment_time', { ascending: true });
+
+      if (error) throw error;
+
+      console.log(`✅ Found ${data?.length || 0} bookings for ${date}`);
+      return data || [];
+      
+    } catch (error) {
+      console.error('❌ Error fetching bookings by date:', error);
+      return [];
+    }
+  }
+
   // 4. Get user's bookings
   async getUserBookings(phoneNumber?: string): Promise<BookingRecord[]> {
     try {
-      const currentUser = AuthService.getCurrentUser();
+      // 🔧 Get Zalo user ID instead of mock user ID
+      let currentUserId: string | null = null;
+      
+      try {
+        currentUserId = AuthService.getCurrentUser()?.id || null;
+        console.log('🔍 Fetching bookings for user ID:', currentUserId);
+      } catch (error) {
+        console.warn('⚠️ Could not get user ID, trying fallback methods');
+      }
+      
+      // Fallback to auth service if Zalo user ID is not available
+      if (!currentUserId) {
+        const currentUser = AuthService.getCurrentUser();
+        currentUserId = currentUser?.id || null;
+        console.log('🔍 Using fallback user ID:', currentUserId);
+      }
+
       let query = this.supabase.from('bookings').select('*');
 
-      if (currentUser) {
-        query = query.eq('user_id', currentUser.id);
+      if (currentUserId) {
+        query = query.eq('user_id', currentUserId);
       } else if (phoneNumber) {
         query = query.eq('phone_number', phoneNumber);
       } else {
+        console.warn('⚠️ No user ID or phone number provided for getUserBookings');
         return [];
       }
 
       const { data, error } = await query
         .order('booking_timestamp', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error fetching bookings:', error);
+        throw error;
+      }
+      
+      console.log('✅ Successfully fetched bookings:', data?.length || 0);
       return data || [];
 
     } catch (error) {
-      console.error('Error fetching user bookings:', error);
+      console.error('❌ Error fetching user bookings:', error);
       return [];
     }
   }
@@ -291,15 +346,15 @@ export class RealClinicBookingService {
         .single();
 
       if (booking) {
-        const hasConflict = await this.checkTimeConflict(
+        const capacityCheck = await this.checkCapacityAndConflict(
           booking.appointment_date,
           booking.appointment_time
         );
 
-        if (hasConflict) {
+        if (!capacityCheck.canBook) {
           return {
             success: false,
-            message: 'Không thể xác nhận: Thời gian đã có lịch khác'
+            message: 'Không thể xác nhận: ' + capacityCheck.message
           };
         }
       }

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'zmp-ui';
 import { MedicalRecord, Patient, TreatmentSession } from '@/services/supabase';
-import { MockMedicalRecordService } from '@/services/mock-medical-record.service';
+import { MockDatabaseService } from '@/services/mock-database.service';
 import { formatFullDate } from '@/utils/format';
 import PolarizedList from '@/components/polarized-list';
 import DoctorItem from '@/components/items/doctor';
-import { MockDatabaseService } from '@/services/mock-database.service';
 import NotFound from '../404';
 
 function MedicalRecordDetailPage() {
@@ -23,7 +22,7 @@ function MedicalRecordDetailPage() {
       }
 
       try {
-        const medicalRecord = await MockMedicalRecordService.getRecordById(id);
+        const medicalRecord = MockDatabaseService.getMedicalRecords().find(record => record.id === id);
         if (medicalRecord) {
           setRecord(medicalRecord);
           
@@ -47,11 +46,13 @@ function MedicalRecordDetailPage() {
     if (!record) return;
     
     try {
-      const updatedSession = await MockMedicalRecordService.updateTreatmentSession(
-        record.id, 
-        sessionId, 
-        updates
-      );
+      const updatedSession = {
+        id: sessionId,
+        recordId: record.id,
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      console.log('Updated treatment session:', updatedSession);
       
       if (updatedSession) {
         // Update local state

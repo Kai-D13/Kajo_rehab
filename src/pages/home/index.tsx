@@ -1,24 +1,22 @@
 import ServiceMenu from './service-menu';
-import QuickActions from './quick-actions';
 import SearchBar from '../search/search-bar';
 import FeaturedServices from './featured-services';
 import RemoteDiagnosis from './remote-diagnosis';
 import HealthNews from './health-news';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { UserProfile } from '@/components/auth/UserProfile';
-import { EnvDebug } from '@/components/debug/env-debug';
+import React, { Suspense } from "react";
+import { Services } from "./services";
+import { BottomActions } from "./bottom-actions";
+import { BottomNavigation } from "./bottom-navigation";
+import { LoadingBanner } from "./loading-banner";
+import { QuickActions } from "./quick-actions";
+import { RecommendedServices } from "./recommended-services";
 import { Box } from 'zmp-ui';
 
 function HomePage() {
   return (
     <AuthGuard>
-      {/* Development Debug Panel */}
-      {import.meta.env.DEV && (
-        <>
-          <EnvDebug />
-        </>
-      )}
-      
       {/* User Profile Header */}
       <Box className="p-4 bg-blue-50">
         <UserProfile />

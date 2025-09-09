@@ -17,7 +17,14 @@
   "scripts": {
     "login": "zmp login",
     "start": "zmp start",
+    "build": "zmp build",
+    "preview": "zmp preview",
     "deploy": "zmp deploy",
+    "dev": "npm run build && node local-server.js",
+    "serve": "node local-server.js",
+    "local": "npm run build && npm run serve",
+    "test": "npx tsx src/tests/node-e2e.test.ts",
+    "test:watch": "npx tsx watch src/tests/node-e2e.test.ts",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\" | cat"
   },
   "dependencies": {
@@ -32,8 +39,8 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.5.2",
     "react-signature-canvas": "^1.1.0-alpha.2",
-    "zmp-sdk": "latest",
-    "zmp-ui": "^1.11.7"
+    "zmp-sdk": "^2.47.2",
+    "zmp-ui": "^1.11.11"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.5",
@@ -41,7 +48,9 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
+    "cors": "^2.8.5",
     "cross-env": "^7.0.3",
+    "express": "^4.21.2",
     "postcss": "^8.4.38",
     "postcss-cli": "^8.3.1",
     "postcss-preset-env": "^6.7.0",

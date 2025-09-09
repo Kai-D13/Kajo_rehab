@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { MockDatabaseService } from './mock-database.service';
 import { EnvironmentService } from './environment.service';
 import { realClinicBookingService, EnhancedBookingData } from './real-clinic-booking.service';
+import { zaloOAService, BookingNotificationData } from './zalo-oa.service';
 import toast from 'react-hot-toast';
 
 // DISABLE SUPABASE in production for now to fix GoTrueClient errors
@@ -46,13 +47,25 @@ class BookingServiceV2 {
                 throw new Error('Vui lòng đăng nhập để đặt lịch hẹn');
             }
 
-            // Get phone number from user if available, otherwise use a default
-            const phoneNumber = await this.getUserPhoneNumber();
+            // Prioritize phone number from form, then from user profile
+            let phoneNumber = bookingData.phone_number;
+            
+            if (!phoneNumber) {
+                phoneNumber = await this.getUserPhoneNumber();
+            }
+            
+            // If still no phone number found, use a default for demo
+            if (!phoneNumber) {
+                phoneNumber = '0123456789'; // Demo fallback
+                console.warn('⚠️ Using default phone number for demo:', phoneNumber);
+            }
+            
+            console.log('📞 Using phone number for booking:', phoneNumber);
             
             // Transform legacy BookingData to EnhancedBookingData
             const enhancedBookingData: EnhancedBookingData = {
                 customer_name: currentUser.name || 'Khách hàng',
-                phone_number: phoneNumber || bookingData.phone_number || '0123456789', // Use form data or default
+                phone_number: phoneNumber || '0123456789', // Fallback to default
                 appointment_date: bookingData.appointment_date,
                 appointment_time: bookingData.appointment_time,
                 symptoms: bookingData.symptoms || 'Không có triệu chứng cụ thể',
@@ -72,6 +85,9 @@ class BookingServiceV2 {
                     appointment_date: result.booking.appointment_date,
                     appointment_time: result.booking.appointment_time
                 } as any);
+
+                // 🔔 Send Zalo OA notification via Edge Function
+                await this.sendBookingNotificationViaEdge(result.booking.id);
 
                 return {
                     appointment: result.booking as any,
@@ -124,6 +140,9 @@ class BookingServiceV2 {
                     appointment_time: mockBooking.appointment_time
                 } as any);
 
+                // 🔔 Send Zalo OA notification for mock booking too
+                await this.sendBookingNotification(mockBooking as any, bookingData);
+
                 return {
                     appointment: mockBooking as any,
                     qrCode: qrCode,
@@ -150,9 +169,35 @@ class BookingServiceV2 {
     // Get user's phone number (required for booking)
     private async getUserPhoneNumber(): Promise<string | null> {
         try {
-            // Try to get phone from Zalo API if available
+            // First try to get from current user in AuthService
             const currentUser = AuthService.getCurrentUser();
-            return currentUser?.phone || null;
+            if (currentUser?.phone && currentUser.phone !== 'Unknown') {
+                return currentUser.phone;
+            }
+
+            // Try to get from Zalo Mini App API
+            if (typeof window !== 'undefined' && window.ZaloApi) {
+                try {
+                    const userInfo = await window.ZaloApi.getUserInfo();
+                    if (userInfo && userInfo.phone) {
+                        return userInfo.phone;
+                    }
+                } catch (error) {
+                    console.warn('Could not get phone from Zalo API:', error);
+                }
+            }
+
+            // Try to get from stored user data
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const userData = JSON.parse(storedUser);
+                if (userData.phone && userData.phone !== 'Unknown') {
+                    return userData.phone;
+                }
+            }
+
+            // Return null if no phone found - will prompt user
+            return null;
         } catch (error) {
             console.warn('Could not get phone number:', error);
             return null;
@@ -236,6 +281,82 @@ class BookingServiceV2 {
         } catch (error) {
             console.error('❌ Error in getAppointmentById:', error);
             return null;
+        }
+    }
+
+    // 🔔 Send booking notification via Edge Function (NEW)
+    private async sendBookingNotificationViaEdge(bookingId: string): Promise<void> {
+        try {
+            console.log('📱 Sending OA notification via Edge Function for booking:', bookingId);
+            
+            const edgeBaseUrl = import.meta.env.VITE_SUPABASE_URL + '/functions/v1';
+            
+            const response = await fetch(`${edgeBaseUrl}/notify_booking_created`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ 
+                    booking_id: bookingId,
+                    channel: 'oa'
+                })
+            });
+
+            const result = await response.json();
+            
+            if (response.ok && result.ok) {
+                console.log('✅ OA notification sent successfully via Edge Function');
+            } else {
+                console.warn('⚠️ Edge Function OA notification failed:', result);
+            }
+
+        } catch (error) {
+            console.error('❌ Error sending OA notification via Edge Function:', error);
+        }
+    }
+
+    // 🔔 Send booking notification via Zalo OA (LEGACY - keep for fallback)
+    private async sendBookingNotification(booking: any, bookingData: BookingData): Promise<void> {
+        try {
+            const currentUser = AuthService.getCurrentUser();
+            const zaloUser = AuthService.getCurrentZaloUser();
+            
+            if (!zaloUser?.id) {
+                console.warn('⚠️ No Zalo user ID found, skipping OA notification');
+                return;
+            }
+
+            const notificationData: BookingNotificationData = {
+                customerName: currentUser?.name || booking.customer_name || 'Khách hàng',
+                phone: booking.phone_number || bookingData.phone_number || '0123456789',
+                doctorName: bookingData.doctor_name || 'Bác sĩ điều trị',
+                serviceName: bookingData.service_name || 'Dịch vụ y tế',
+                appointmentDate: booking.appointment_date || bookingData.appointment_date,
+                appointmentTime: booking.appointment_time || bookingData.appointment_time,
+                bookingId: booking.id || 'N/A',
+                clinicLocation: 'Kajo Rehab Clinic'
+            };
+
+            console.log('📱 Sending Zalo OA notification to user:', zaloUser.id);
+            const result = await zaloOAService.sendBookingConfirmation(zaloUser.id, notificationData);
+            
+            if (result.success) {
+                console.log('✅ Zalo OA notification sent successfully');
+                
+                // Schedule reminder for 24h before appointment
+                const appointmentDateTime = new Date(`${booking.appointment_date} ${booking.appointment_time}`);
+                const reminderTime = new Date(appointmentDateTime.getTime() - 24 * 60 * 60 * 1000);
+                
+                if (reminderTime > new Date()) {
+                    await zaloOAService.scheduleReminder(zaloUser.id, notificationData, reminderTime);
+                }
+            } else {
+                console.warn('⚠️ Failed to send Zalo OA notification:', result.message);
+            }
+
+        } catch (error) {
+            console.error('❌ Error sending booking notification:', error);
         }
     }
 }

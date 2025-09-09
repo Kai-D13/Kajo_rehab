@@ -9,6 +9,7 @@ import Section from "@/components/section";
 import TransitionLink from "@/components/transition-link";
 import { Action } from "./action";
 import { VisitedDoctor } from "./visited-doctor";
+import { Page, Header } from "zmp-ui";
 import { Doctor } from "@/types";
 
 function ProfilePage() {
@@ -22,22 +23,24 @@ function ProfilePage() {
   const [d1, d2] = doctors.slice(0, 2);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="grid grid-cols-3 pt-4 pb-5">
-        {[
-          ["Điểm thưởng", 14],
-          ["Phiếu giảm giá", 2],
-          ["Buổi khám", 3],
-        ].map(([key, value]) => (
-          <div key={key} className="flex flex-col space-y-1.5 text-center">
-            <div className="text-xl font-bold text-primary-gradient">
-              {value}
+    <Page className="bg-gray-100">
+      <Header title="Hồ sơ cá nhân" showBackIcon />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="grid grid-cols-3 pt-4 pb-5">
+          {[
+            ["Điểm thưởng", 14],
+            ["Phiếu giảm giá", 2],
+            ["Buổi khám", 3],
+          ].map(([key, value]) => (
+            <div key={key} className="flex flex-col space-y-1.5 text-center">
+              <div className="text-xl font-bold text-primary-gradient">
+                {value}
+              </div>
+              <div className="text-disabled text-2xs">{key}</div>
             </div>
-            <div className="text-disabled text-2xs">{key}</div>
-          </div>
-        ))}
-      </div>
-      <div className="flex-1 flex flex-col bg-white py-8 space-y-9 overflow-y-auto">
+          ))}
+        </div>
+        <div className="flex-1 flex flex-col bg-white py-8 space-y-9 overflow-y-auto">
         <Section title="Dịch vụ y tế" viewMore="/services">
           <div className="grid grid-cols-4 pt-6 gap-2 text-center text-xs">
             {[
@@ -73,19 +76,15 @@ function ProfilePage() {
               to="/feedback"
             />
             <Action
-              label="Admin Dashboard"
+              label="Thông tin phòng khám"
               icon={<ArrowRightIcon className="h-3.5 w-3.5" />}
-              to="/admin"
-            />
-            <Action
-              label="Thông tin bệnh viện"
-              icon={<ArrowRightIcon className="h-3.5 w-3.5" />}
-              to="/hospital-info"
+              to="/clinic-info"
             />
           </div>
         </Section>
       </div>
     </div>
+    </Page>
   );
 }
 

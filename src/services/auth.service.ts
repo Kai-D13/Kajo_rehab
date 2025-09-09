@@ -1,6 +1,7 @@
 import { getAccessToken, getUserInfo, authorize, getUserID } from 'zmp-sdk';
 import { User } from './supabase.config';
 import { MockDatabaseService } from './mock-database.service';
+import { ZaloNavigationService } from './zalo-navigation.service';
 import toast from 'react-hot-toast';
 
 export interface ZaloUserInfo {
@@ -12,6 +13,51 @@ export interface ZaloUserInfo {
 export class AuthService {
   private static currentUser: User | null = null;
   private static currentZaloUser: ZaloUserInfo | null = null;
+  private static readonly USER_CACHE_KEY = 'kajo_user_cache';
+  private static readonly ZALO_USER_CACHE_KEY = 'kajo_zalo_user_cache';
+
+  /**
+   * Load cached user data on service initialization
+   */
+  static {
+    this.initializeFromCache();
+  }
+
+  private static async initializeFromCache() {
+    try {
+      // Try native storage first, fallback to localStorage
+      const nativeData = await ZaloNavigationService.getNativeStorage([
+        this.USER_CACHE_KEY, 
+        this.ZALO_USER_CACHE_KEY
+      ]);
+
+      if (nativeData[this.USER_CACHE_KEY]) {
+        this.currentUser = nativeData[this.USER_CACHE_KEY];
+        console.log('✅ Restored cached user from native storage:', this.currentUser?.id);
+      } else {
+        // Fallback to localStorage
+        const cachedUser = localStorage.getItem(this.USER_CACHE_KEY);
+        if (cachedUser) {
+          this.currentUser = JSON.parse(cachedUser);
+          console.log('✅ Restored cached user from localStorage:', this.currentUser?.id);
+        }
+      }
+
+      if (nativeData[this.ZALO_USER_CACHE_KEY]) {
+        this.currentZaloUser = nativeData[this.ZALO_USER_CACHE_KEY];
+        console.log('✅ Restored cached Zalo user from native storage:', this.currentZaloUser?.id);
+      } else {
+        // Fallback to localStorage
+        const cachedZaloUser = localStorage.getItem(this.ZALO_USER_CACHE_KEY);
+        if (cachedZaloUser) {
+          this.currentZaloUser = JSON.parse(cachedZaloUser);
+          console.log('✅ Restored cached Zalo user from localStorage:', this.currentZaloUser?.id);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to restore cached user data:', error);
+    }
+  }
 
   /**
    * Request permissions from user first
@@ -137,6 +183,15 @@ export class AuthService {
       this.currentUser = user;
       this.currentZaloUser = userInfo;
 
+      // Cache user data to localStorage
+      try {
+        localStorage.setItem(this.USER_CACHE_KEY, JSON.stringify(user));
+        localStorage.setItem(this.ZALO_USER_CACHE_KEY, JSON.stringify(userInfo));
+        console.log('💾 User data cached successfully');
+      } catch (cacheError) {
+        console.warn('⚠️ Failed to cache user data:', cacheError);
+      }
+
       console.log('✅ Authentication successful for user:', userInfo.id);
       return { user, zaloUser };
       
@@ -251,11 +306,19 @@ export class AuthService {
   }
 
   /**
-   * Logout user
+   * Logout và clear cache
    */
   static logout(): void {
     this.currentUser = null;
     this.currentZaloUser = null;
+    
+    try {
+      localStorage.removeItem(this.USER_CACHE_KEY);
+      localStorage.removeItem(this.ZALO_USER_CACHE_KEY);
+      console.log('🔓 User logged out and cache cleared');
+    } catch (error) {
+      console.warn('⚠️ Failed to clear cache on logout:', error);
+    }
   }
 
   /**
