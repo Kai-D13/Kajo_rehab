@@ -1,24 +1,30 @@
-import zmp from 'zmp-sdk';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'zmp-ui';
+import zmp from 'zmp-sdk';
 
+/**
+ * Hook để thiết lập back button mặc định cho mọi trang phụ
+ * Tự động gọi router.back() khi user nhấn nút back
+ */
 export function useBackButton() {
-  const navigate = useNavigate();
-  
+  const router = useRouter();
+
   useEffect(() => {
-    const handleBack = () => {
-      navigate(-1);
-    };
-    
-    zmp.setNavigationBarLeftButton({ 
-      type: 'back'
+    // Set navigation bar left button to back
+    zmp.setNavigationBarLeftButton({
+      type: 'back',
+      onClick: () => {
+        console.log('🔙 Back button clicked');
+        router.back();
+      }
     });
-    
-    // Set up back button event listener
-    zmp.events.on('onLeftButtonTap', handleBack);
-    
+
+    // Cleanup function
     return () => {
-      zmp.events.off('onLeftButtonTap', handleBack);
+      // Reset to default if needed
+      zmp.setNavigationBarLeftButton({
+        type: 'back'
+      });
     };
-  }, [navigate]);
+  }, [router]);
 }

@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 ALTER TABLE public.bookings
   ADD COLUMN IF NOT EXISTS booking_no BIGSERIAL,
   ADD COLUMN IF NOT EXISTS booking_code TEXT GENERATED ALWAYS AS (
-    'KR-' || to_char(appointment_date, 'YYYYMMDD') || '-' || lpad(booking_no::text, 5, '0')
+    'KR-' || to_char(appointment_date, 'YYYYMMDD') || '-' || lpad(booking_no::text, '5', '0')
   ) STORED,
   ADD COLUMN IF NOT EXISTS checkout_timestamp TIMESTAMPTZ;
 
