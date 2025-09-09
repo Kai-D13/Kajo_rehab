@@ -134,11 +134,9 @@
     <script type="module">
         import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
         
-        // ⚙️ Configuration - UPDATE THESE VALUES
-        const SUPABASE_URL = "https://vekrhqotmgszgsredkud.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzMmVka3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU3Nzg5MTYsImV4cCI6MjA0MTM1NDkxNn0.IUVX8xUjqCiU8JGS3lxE30S2CQ_2R8FQp9f3TKP5WXw";
-        const EDGE_BASE_URL = `${SUPABASE_URL}/functions/v1`;
-        const EDGE_ADMIN_API_KEY = "kajo-admin-2025";
+        // ⚙️ Configuration - Production Edge Functions
+        const EDGE_BASE_URL = 'https://vekrhqotmgszgsredkud.functions.supabase.co';
+        const EDGE_ADMIN_API_KEY = '0883eb4f114371c8414ad8e3a2e3557b4fdddbadee78ecb41dfea0b8ca29cb96';
         
         // Initialize Supabase client
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

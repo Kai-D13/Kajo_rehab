@@ -289,30 +289,83 @@ class BookingServiceV2 {
         try {
             console.log('📱 Sending OA notification via Edge Function for booking:', bookingId);
             
+            // Get message_token from Zalo Mini App API (7 days valid)
+            const messageToken = await this.getMessageToken();
+            if (!messageToken) {
+                console.warn('⚠️ No message_token available, skipping OA notification');
+                return;
+            }
+            
             const edgeBaseUrl = import.meta.env.VITE_SUPABASE_URL + '/functions/v1';
             
             const response = await fetch(`${edgeBaseUrl}/notify_booking_created`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
                     booking_id: bookingId,
-                    channel: 'oa'
+                    recipient: messageToken,
+                    mode: 'message_token'
                 })
             });
 
             const result = await response.json();
             
-            if (response.ok && result.ok) {
-                console.log('✅ OA notification sent successfully via Edge Function');
+            if (response.ok && result.success) {
+                console.log('✅ OA notification sent successfully via Edge Function (message_token)');
             } else {
                 console.warn('⚠️ Edge Function OA notification failed:', result);
+                // Fallback to user_id mode
+                await this.sendOANotificationFallback(bookingId);
             }
 
         } catch (error) {
             console.error('❌ Error sending OA notification via Edge Function:', error);
+        }
+    }
+
+    // Get message_token from Zalo Mini App (7 days validity)
+    private async getMessageToken(): Promise<string | null> {
+        try {
+            const { zmp } = await import('zmp-sdk');
+            const token = await zmp.getMessageToken();
+            return token || null;
+        } catch (error) {
+            console.warn('⚠️ Failed to get message_token:', error);
+            return null;
+        }
+    }
+
+    // Fallback to user_id mode
+    private async sendOANotificationFallback(bookingId: string): Promise<void> {
+        try {
+            const zaloUser = AuthService.getCurrentZaloUser();
+            if (!zaloUser?.id) return;
+
+            const edgeBaseUrl = import.meta.env.VITE_SUPABASE_URL + '/functions/v1';
+            
+            const response = await fetch(`${edgeBaseUrl}/notify_booking_created`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    booking_id: bookingId,
+                    recipient: zaloUser.id,
+                    mode: 'uid'
+                })
+            });
+
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                console.log('✅ OA notification sent via fallback (uid mode)');
+            } else {
+                console.warn('⚠️ Fallback OA notification also failed:', result);
+            }
+        } catch (error) {
+            console.error('❌ Fallback notification error:', error);
         }
     }
 

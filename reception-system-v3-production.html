@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Kajo Reception System v3.0 - Production Edge Functions</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f8fafc; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 28px; color: #1e293b; margin-bottom: 8px; }
+        .header p { color: #64748b; }
+        .filters { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+        .input-group input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-purple { background: #8b5cf6; color: white; }
+        .btn-purple:hover { background: #7c3aed; }
+        .btn-sm { padding: 8px 12px; font-size: 12px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 32px; font-weight: 700; color: #1e293b; }
+        .stat-label { font-size: 14px; color: #64748b; margin-top: 4px; }
+        .table-container { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .table-header { padding: 20px; border-bottom: 1px solid #e5e7eb; }
+        .table-header h2 { font-size: 18px; color: #1e293b; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { padding: 12px; text-align: left; font-weight: 600; color: #374151; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        .table td { padding: 12px; border-bottom: 1px solid #f3f4f6; }
+        .table tr:hover { background: #f9fafb; }
+        .status { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .status.pending { background: #fef3c7; color: #92400e; }
+        .status.confirmed { background: #dbeafe; color: #1e40af; }
+        .status.checked_in { background: #d1fae5; color: #065f46; }
+        .status.checked_out { background: #e0e7ff; color: #5b21b6; }
+        .status.completed { background: #dcfce7; color: #166534; }
+        .status.canceled { background: #fee2e2; color: #dc2626; }
+        .status.no_show { background: #f3f4f6; color: #6b7280; }
+        .loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .loading-spinner { width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+        .notification { position: fixed; top: 20px; right: 20px; padding: 16px 20px; border-radius: 8px; font-weight: 600; z-index: 2000; }
+        .notification.success { background: #10b981; color: white; }
+        .notification.error { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🏥 Kajo Reception System</h1>
+            <p>Production v3.0 - Secure Edge Functions Only | Admin Key: 0883eb4f...cb96</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-grid">
+                <div class="input-group">
+                    <label>Tìm theo SĐT</label>
+                    <input id="search-phone" type="text" placeholder="0123456789">
+                </div>
+                <div class="input-group">
+                    <label>Từ ngày</label>
+                    <input id="filter-start" type="date">
+                </div>
+                <div class="input-group">
+                    <label>Đến ngày</label>
+                    <input id="filter-end" type="date">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button id="filter-apply" class="btn btn-primary">📅 Áp dụng filter</button>
+                <button id="filter-today" class="btn btn-success btn-sm">Hôm nay</button>
+                <button id="filter-tomorrow" class="btn btn-primary btn-sm">Ngày mai</button>
+                <button id="filter-week" class="btn btn-purple btn-sm">7 ngày tới</button>
+                <button id="refresh-btn" class="btn btn-primary">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="stat-total">0</div>
+                <div class="stat-label">Tổng booking</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="stat-pending">0</div>
+                <div class="stat-label">Chờ xác nhận</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="stat-checkedin">0</div>
+                <div class="stat-label">Đã check-in</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="stat-checkedout">0</div>
+                <div class="stat-label">Đã check-out</div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>📋 Danh sách booking</h2>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Booking Code</th>
+                        <th>Khách hàng</th>
+                        <th>SĐT</th>
+                        <th>Ngày/Giờ hẹn</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="booking-table-body">
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading hidden">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        // ⚙️ Configuration
+        const EDGE_BASE_URL = 'https://vekrhqotmgszgsredkud.functions.supabase.co';
+        const EDGE_ADMIN_API_KEY = '0883eb4f114371c8414ad8e3a2e3557b4fdddbadee78ecb41dfea0b8ca29cb96';
+
+        // Global state
+        let currentFilter = { phone: "", dateStart: "", dateEnd: "" };
+        let allBookings = [];
+
+        // Helper gọi Edge Functions
+        async function callEdge(name, bookingId) {
+          const r = await fetch(`${EDGE_BASE_URL}/${name}`, {
+            method:'POST',
+            headers:{ 'content-type':'application/json', 'x-admin-key': EDGE_ADMIN_API_KEY },
+            body: JSON.stringify({ booking_id: bookingId, staff_id: 'reception-01' })
+          });
+          return r.json();
+        }
+
+        // Load bookings từ admin_bookings_query Edge Function
+        async function loadBookings() {
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`${EDGE_BASE_URL}/admin_bookings_query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': EDGE_ADMIN_API_KEY
+                    },
+                    body: JSON.stringify({
+                        filters: {
+                            phone: currentFilter.phone,
+                            date_start: currentFilter.dateStart,
+                            date_end: currentFilter.dateEnd
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.data) {
+                    allBookings = result.data;
+                    renderTable(allBookings);
+                    updateStats(allBookings);
+                    console.log(`✅ Loaded ${allBookings.length} bookings`);
+                } else {
+                    console.error('❌ Load bookings failed:', result);
+                    showNotification('Không thể tải dữ liệu booking', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Load bookings error:', error);
+                showNotification('Lỗi kết nối tới server', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Render bảng booking
+        function renderTable(bookings) {
+            const tbody = document.getElementById('booking-table-body');
+            tbody.innerHTML = '';
+            
+            if (bookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #6b7280;">Không có booking nào</td></tr>';
+                return;
+            }
+
+            bookings.forEach(row => {
+                const canCheckIn = ['pending', 'confirmed'].includes(row.booking_status);
+                const canCheckOut = row.booking_status === 'checked_in';
+                
+                const isPastDate = row.appointment_date < getTodayVN();
+                const isDisabledStatus = ['no_show','canceled','completed'].includes(row.booking_status);
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-family: monospace; font-weight: 600; color: #1e293b;">
+                            ${row.booking_code || '-'}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #1e293b;">${row.customer_name || '-'}</div>
+                        ${row.symptoms ? `<div style="font-size: 12px; color: #6b7280; margin-top: 2px;">${row.symptoms}</div>` : ''}
+                    </td>
+                    <td>
+                        <div style="color: #1e293b;">${row.phone_number || '-'}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #1e293b;">
+                            ${formatDate(row.appointment_date)} ${formatTime(row.appointment_time)}
+                        </div>
+                        ${row.checkin_timestamp ? `<div style="font-size: 12px; color: #10b981; margin-top: 2px;">✓ In: ${new Date(row.checkin_timestamp).toLocaleTimeString('vi-VN')}</div>` : ''}
+                        ${row.checkout_timestamp ? `<div style="font-size: 12px; color: #8b5cf6; margin-top: 2px;">✓ Out: ${new Date(row.checkout_timestamp).toLocaleTimeString('vi-VN')}</div>` : ''}
+                    </td>
+                    <td>
+                        <span class="status ${row.booking_status}">${row.booking_status}</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-success btn-sm" ${(canCheckIn && !isPastDate && !isDisabledStatus) ? '' : 'disabled'} 
+                                    data-action="checkin" data-id="${row.id}">
+                                📥 Check-in
+                            </button>
+                            <button class="btn btn-purple btn-sm" ${(canCheckOut && !isPastDate && !isDisabledStatus) ? '' : 'disabled'} 
+                                    data-action="checkout" data-id="${row.id}">
+                                📤 Check-out
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Update stats
+        function updateStats(bookings) {
+            const stats = {
+                total: bookings.length,
+                pending: bookings.filter(b => ['pending', 'confirmed'].includes(b.booking_status)).length,
+                checkedIn: bookings.filter(b => b.booking_status === 'checked_in').length,
+                checkedOut: bookings.filter(b => b.booking_status === 'checked_out').length
+            };
+            
+            document.getElementById('stat-total').textContent = stats.total;
+            document.getElementById('stat-pending').textContent = stats.pending;
+            document.getElementById('stat-checkedin').textContent = stats.checkedIn;
+            document.getElementById('stat-checkedout').textContent = stats.checkedOut;
+        }
+
+        // Utility functions
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        function formatTime(timeStr) {
+            if (!timeStr) return '';
+            return timeStr.slice(0, 5); // HH:MM
+        }
+
+        function getTodayVN() {
+            const vn = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+            return `${vn.getFullYear()}-${String(vn.getMonth()+1).padStart(2,"0")}-${String(vn.getDate()).padStart(2,"0")}`;
+        }
+        
+        function getTomorrowVN() {
+            const vn = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+            vn.setDate(vn.getDate() + 1);
+            return `${vn.getFullYear()}-${String(vn.getMonth()+1).padStart(2,"0")}-${String(vn.getDate()).padStart(2,"0")}`;
+        }
+        
+        function getWeekFromNowVN() {
+            const vn = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+            vn.setDate(vn.getDate() + 7);
+            return `${vn.getFullYear()}-${String(vn.getMonth()+1).padStart(2,"0")}-${String(vn.getDate()).padStart(2,"0")}`;
+        }
+
+        // UI utilities
+        function showLoading(show) {
+            document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Event listeners
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            
+            const id = btn.getAttribute('data-id');
+            const action = btn.getAttribute('data-action'); // 'checkin' | 'checkout'
+            
+            try {
+                showLoading(true);
+                const res = await callEdge(action, id);
+                
+                if (res?.ok) {
+                    const actionText = action === 'checkin' ? 'Check-in' : 'Check-out';
+                    showNotification(`${actionText} thành công!`, 'success');
+                    await loadBookings(); // Reload để cập nhật
+                } else {
+                    console.warn(`${action} failed:`, res);
+                    showNotification(res.error || `${action} failed`, 'error');
+                }
+            } catch (error) {
+                console.error(`Error ${action}:`, error);
+                showNotification('Có lỗi xảy ra', 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Filter events
+        document.getElementById('filter-apply').addEventListener('click', () => {
+            currentFilter.phone = document.getElementById('search-phone').value;
+            currentFilter.dateStart = document.getElementById('filter-start').value;
+            currentFilter.dateEnd = document.getElementById('filter-end').value;
+            loadBookings();
+        });
+
+        document.getElementById('filter-today').addEventListener('click', () => {
+            const today = getTodayVN();
+            currentFilter.dateStart = today;
+            currentFilter.dateEnd = today;
+            document.getElementById('filter-start').value = today;
+            document.getElementById('filter-end').value = today;
+            loadBookings();
+        });
+
+        document.getElementById('filter-tomorrow').addEventListener('click', () => {
+            const tomorrow = getTomorrowVN();
+            currentFilter.dateStart = tomorrow;
+            currentFilter.dateEnd = tomorrow;
+            document.getElementById('filter-start').value = tomorrow;
+            document.getElementById('filter-end').value = tomorrow;
+            loadBookings();
+        });
+
+        document.getElementById('filter-week').addEventListener('click', () => {
+            const today = getTodayVN();
+            const week = getWeekFromNowVN();
+            currentFilter.dateStart = today;
+            currentFilter.dateEnd = week;
+            document.getElementById('filter-start').value = today;
+            document.getElementById('filter-end').value = week;
+            loadBookings();
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            loadBookings();
+        });
+
+        // Enter key trong search
+        document.getElementById('search-phone').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('filter-apply').click();
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default filter to today
+            const today = getTodayVN();
+            document.getElementById('filter-start').value = today;
+            document.getElementById('filter-end').value = getTomorrowVN();
+            currentFilter.dateStart = today;
+            currentFilter.dateEnd = getTomorrowVN();
+            
+            loadBookings();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(loadBookings, 30000);
+        });
+    </script>
+</body>
+</html>
