@@ -9,7 +9,7 @@ const ZALO_OA_SEND_MODE = (Deno.env.get("ZALO_OA_SEND_MODE") as "uid"|"message_t
 const cors = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
-  "access-control-allow-headers": "content-type"
+  "access-control-allow-headers": "content-type, x-admin-key"
 };
 
 const json = (body: any, status = 200) => 

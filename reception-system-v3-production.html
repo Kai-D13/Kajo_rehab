@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏥 Kajo Reception System v3.0 - Production Edge Functions</title>
+         async function callEdgeFunction(name, payload) {
+          const r = await fetch(`${EDGE_BASE_URL}/${name}`, {
+            method:'POST',
+            headers:{ 
+                'content-type':'application/json', 
+                'x-admin-key': EDGE_ADMIN_API_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify(payload)
+          });
+          return r.json();
+        }e>🏥 Kajo Reception System v3.0 - Production Edge Functions</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f8fafc; }
@@ -137,8 +149,9 @@
 
     <script>
         // ⚙️ Configuration
-        const EDGE_BASE_URL = 'https://vekrhqotmgszgsredkud.functions.supabase.co';
+        const EDGE_BASE_URL = 'https://vekrhqotmgszgsredkud.supabase.co/functions/v1';
         const EDGE_ADMIN_API_KEY = '0883eb4f114371c8414ad8e3a2e3557b4fdddbadee78ecb41dfea0b8ca29cb96';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZla3JocW90bWdzemdzcmVka3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzEyMDA4MTMsImV4cCI6MjA0Njc3NjgxM30.NJ42lNaBUFx2nzz8LfpXoozlzFzPCgkKXGNr8eL0R-Q';
 
         // Global state
         let currentFilter = { phone: "", dateStart: "", dateEnd: "" };
@@ -163,7 +176,9 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-admin-key': EDGE_ADMIN_API_KEY
+                        'x-admin-key': EDGE_ADMIN_API_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
                     },
                     body: JSON.stringify({
                         filters: {
